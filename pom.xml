@@ -15,6 +15,14 @@
 
     <name>Stash Mirror Plugin</name>
     <description>A stash repository hook for mirroring to a remote repository.</description>
+    <url>https://github.com/englishtown/stash-hook-mirror</url>
+    <inceptionYear>2013</inceptionYear>
+    <licenses>
+        <license>
+            <name>The MIT License</name>
+            <url>http://englishtown.mit-license.org/license.txt</url>
+        </license>
+    </licenses>
     <packaging>atlassian-plugin</packaging>
 
     <properties>
@@ -181,5 +189,16 @@
             </snapshots>
         </pluginRepository>
     </pluginRepositories>
+
+    <scm>
+        <connection>scm:git:ssh://git@github.com:englishtown/stash-hook-mirror.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:englishtown/stash-hook-mirror.git</developerConnection>
+        <url>scm:git:https://github.com/englishtown/stash-hook-mirror</url>
+    </scm>
+
+    <issueManagement>
+        <system>Github Issues</system>
+        <url>https://github.com/englishtown/stash-hook-mirror/issues</url>
+    </issueManagement>
 
 </project>
