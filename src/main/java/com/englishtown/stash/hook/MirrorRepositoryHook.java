@@ -19,20 +19,29 @@ import javax.annotation.Nonnull;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, RepositorySettingsValidator {
 
     static final String SETTING_MIRROR_REPO_URL = "mirrorRepoUrl";
     static final String SETTING_USERNAME = "username";
     static final String SETTING_PASSWORD = "password";
+    static final int MAX_ATTEMPTS = 5;
 
     private final GitScm gitScm;
     private final I18nService i18nService;
+    private final ScheduledExecutorService executor;
     private static final Logger logger = LoggerFactory.getLogger(MirrorRepositoryHook.class);
 
-    public MirrorRepositoryHook(GitScm gitScm, I18nService i18nService) {
+    public MirrorRepositoryHook(
+            GitScm gitScm,
+            I18nService i18nService,
+            ScheduledExecutorService executor) {
         this.gitScm = gitScm;
         this.i18nService = i18nService;
+        this.executor = executor;
     }
 
     /**
@@ -51,36 +60,63 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             @Nonnull RepositoryHookContext context,
             @Nonnull Collection<RefChange> refChanges) {
 
+        logger.debug("MirrorRepositoryHook: postReceive started.");
+
+        Settings settings = context.getSettings();
+        String mirrorRepoUrl = settings.getString(SETTING_MIRROR_REPO_URL);
+        String username = settings.getString(SETTING_USERNAME);
+        String password = settings.getString(SETTING_PASSWORD);
+
+        runMirrorCommand(mirrorRepoUrl, username, password, context.getRepository());
+
+    }
+
+    void runMirrorCommand(String mirrorRepoUrl, String username, final String password, final Repository repository) {
+
         try {
-            logger.debug("MirrorRepositoryHook: postReceive started.");
+            final URI authenticatedUrl = getAuthenticatedUrl(mirrorRepoUrl, username, password);
 
-            Settings settings = context.getSettings();
-            String mirrorRepoUrl = settings.getString(SETTING_MIRROR_REPO_URL);
-            String username = settings.getString(SETTING_USERNAME);
-            String password = settings.getString(SETTING_PASSWORD);
+            executor.submit(new Callable<Void>() {
 
-            URI authenticatedUrl = getAuthenticatedUrl(mirrorRepoUrl, username, password);
-            GitScmCommandBuilder builder = gitScm.getCommandBuilderFactory().builder(context.getRepository());
-            CommandExitHandler exitHandler = new GitCommandExitHandler(i18nService, context.getRepository());
-            PasswordHandler passwordHandler = new PasswordHandler(password, exitHandler);
+                int attempts = 0;
 
-            // Call push command with the mirror flag set
-            String result = builder
-                    .command("push")
-                    .argument("--mirror")
-                    .argument(authenticatedUrl.toString())
-                    .errorHandler(passwordHandler)
-                    .exitHandler(passwordHandler)
-                    .build(passwordHandler)
-                    .call();
+                @Override
+                public Void call() throws Exception {
+                    try {
+                        GitScmCommandBuilder builder = gitScm.getCommandBuilderFactory().builder(repository);
+                        CommandExitHandler exitHandler = new GitCommandExitHandler(i18nService, repository);
+                        PasswordHandler passwordHandler = new PasswordHandler(password, exitHandler);
 
-            builder.defaultExitHandler();
-            logger.debug("MirrorRepositoryHook: postReceive completed with result '{}'.", result);
+                        // Call push command with the mirror flag set
+                        String result = builder
+                                .command("push")
+                                .argument("--mirror")
+                                .argument(authenticatedUrl.toString())
+                                .errorHandler(passwordHandler)
+                                .exitHandler(passwordHandler)
+                                .build(passwordHandler)
+                                .call();
+
+                        logger.debug("MirrorRepositoryHook: postReceive completed with result '{}'.", result);
+
+                    } catch (Exception e) {
+                        if (++attempts > MAX_ATTEMPTS) {
+                            logger.error("Failed to mirror repository " + repository.getName() + " after " + --attempts
+                                    + " attempts.", e);
+                        } else {
+                            logger.warn("Failed to mirror repository " + repository.getName() + ", " +
+                                    "retrying in 1 minute.");
+                            executor.schedule(this, 1, TimeUnit.MINUTES);
+                        }
+                    }
+
+                    return null;
+                }
+            });
 
         } catch (Exception e) {
             logger.error("MirrorRepositoryHook: Error running mirror hook", e);
         }
-
     }
 
     URI getAuthenticatedUrl(String mirrorRepoUrl, String username, String password) throws URISyntaxException {
@@ -129,16 +165,22 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                 }
             }
 
-            if (settings.getString(SETTING_USERNAME, "").isEmpty()) {
+            String username = settings.getString(SETTING_USERNAME, "");
+            if (username.isEmpty()) {
                 count++;
                 errors.addFieldError(SETTING_USERNAME, "The username is required.");
             }
 
-            if (settings.getString(SETTING_PASSWORD, "").isEmpty()) {
+            String password = settings.getString(SETTING_PASSWORD, "");
+            if (password.isEmpty()) {
                 count++;
                 errors.addFieldError(SETTING_PASSWORD, "The password is required.");
             }
 
+            // If no errors, run the mirror command
+            if (count == 0) {
+                runMirrorCommand(mirrorRepoUrl, username, password, repository);
+            }
             logger.debug("MirrorRepositoryHook: validate completed with {} error(s).", count);
 
         } catch (Exception e) {
