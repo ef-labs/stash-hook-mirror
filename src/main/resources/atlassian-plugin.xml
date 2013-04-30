@@ -8,14 +8,12 @@
     </plugin-info>
 
     <!-- Components that are injected -->
-    <component-import key="gitScm" interface="com.atlassian.stash.scm.git.GitScm" />
-    <component-import key="i18nService" interface="com.atlassian.stash.i18n.I18nService" />
+    <component-import key="gitScm" interface="com.atlassian.stash.scm.git.GitScm"/>
+    <component-import key="i18nService" interface="com.atlassian.stash.i18n.I18nService"/>
+    <component-import key="applicationProperties" interface="com.atlassian.sal.api.ApplicationProperties"/>
 
     <!-- add our i18n resource -->
     <resource type="i18n" name="i18n" location="stash-hook-mirror"/>
-
-    <!-- import from the product container -->
-    <component-import key="applicationProperties" interface="com.atlassian.sal.api.ApplicationProperties"/>
 
     <repository-hook name="Mirror Repository Hook" i18n-name-key="mirror-repository-hook.name"
                      key="mirror-repository-hook" class="com.englishtown.stash.hook.MirrorRepositoryHook">
