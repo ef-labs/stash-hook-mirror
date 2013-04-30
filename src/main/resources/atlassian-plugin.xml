@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<atlassian-plugin key="${project.groupId}.${project.artifactId}" name="${project.name}" plugins-version="2">
+    <plugin-info>
+        <description>${project.description}</description>
+        <version>${project.version}</version>
+        <vendor name="${project.organization.name}" url="${project.organization.url}"/>
+    </plugin-info>
+
+    <!-- Components that are injected -->
+    <component-import key="gitScm" interface="com.atlassian.stash.scm.git.GitScm" />
+    <component-import key="i18nService" interface="com.atlassian.stash.i18n.I18nService" />
+
+    <!-- add our i18n resource -->
+    <resource type="i18n" name="i18n" location="stash-hook-mirror"/>
+
+    <!-- import from the product container -->
+    <component-import key="applicationProperties" interface="com.atlassian.sal.api.ApplicationProperties"/>
+
+    <repository-hook name="Mirror Repository Hook" i18n-name-key="mirror-repository-hook.name"
+                     key="mirror-repository-hook" class="com.englishtown.stash.hook.MirrorRepositoryHook">
+        <description key="mirror-repository-hook.description">Mirror Repository Hook</description>
+        <icon>/icons/mirror-icon.png</icon>
+        <config-form name="Mirror Hook Config" key="mirror-repository-hook-config">
+            <view>com.englishtown.stash.hook.mirrorrepositoryhook.view</view>
+            <directory location="/static/"/>
+        </config-form>
+    </repository-hook>
+</atlassian-plugin>

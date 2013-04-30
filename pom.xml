@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.englishtown</groupId>
+    <artifactId>stash-hook-mirror</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <organization>
+        <name>Englishtown</name>
+        <url>http://www.englishtown.com/</url>
+    </organization>
+
+    <name>Stash Mirror Plugin</name>
+    <description>A stash repository hook for mirroring to a remote repository.</description>
+    <packaging>atlassian-plugin</packaging>
+
+    <properties>
+        <stash.version>2.3.1</stash.version>
+        <stash.data.version>2.3.1</stash.data.version>
+        <amps.version>4.1.7</amps.version>
+        <plugin.testrunner.version>1.1.1</plugin.testrunner.version>
+
+        <junit.version>4.10</junit.version>
+        <common-lang.version>2.6</common-lang.version>
+        <plugin.compiler.version>3.1</plugin.compiler.version>
+        <mockito.version>1.8.5</mockito.version>
+        <gson.version>2.2.2-atlassian-1</gson.version>
+        <jsr311.version>1.1.1</jsr311.version>
+        <slf4j.version>1.7.5</slf4j.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.atlassian.stash</groupId>
+                <artifactId>stash-parent</artifactId>
+                <version>${stash.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.atlassian.stash</groupId>
+            <artifactId>stash-scm-git-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.atlassian.stash</groupId>
+            <artifactId>stash-scm-git</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.atlassian.stash</groupId>
+            <artifactId>stash-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.atlassian.stash</groupId>
+            <artifactId>stash-spi</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.atlassian.stash</groupId>
+            <artifactId>stash-page-objects</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>${common-lang.version}</version>
+        </dependency>
+        <!-- WIRED TEST RUNNER DEPENDENCIES -->
+        <dependency>
+            <groupId>com.atlassian.plugins</groupId>
+            <artifactId>atlassian-plugins-osgi-testrunner</artifactId>
+            <version>${plugin.testrunner.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>jsr311-api</artifactId>
+            <version>${jsr311.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.atlassian.maven.plugins</groupId>
+                <artifactId>maven-stash-plugin</artifactId>
+                <version>${amps.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <products>
+                        <product>
+                            <id>stash</id>
+                            <instanceId>stash</instanceId>
+                            <version>${stash.version}</version>
+                            <dataVersion>${stash.data.version}</dataVersion>
+                        </product>
+                    </products>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${plugin.compiler.version}</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>atlassian-public</id>
+            <url>https://m2proxy.atlassian.com/repository/public</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+                <checksumPolicy>warn</checksumPolicy>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <checksumPolicy>warn</checksumPolicy>
+            </releases>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>atlassian-public</id>
+            <url>https://m2proxy.atlassian.com/repository/public</url>
+            <releases>
+                <enabled>true</enabled>
+                <checksumPolicy>warn</checksumPolicy>
+            </releases>
+            <snapshots>
+                <checksumPolicy>warn</checksumPolicy>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
+</project>
