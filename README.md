@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/englishtown/stash-hook-mirror.png)](https://travis-ci.org/englishtown/stash-hook-mirror)
+
 #Stash Repository Hook for Mirroring
 
 The following is a plugin for Atlassian Stash to provide repository mirroring to a remote repository.
