@@ -1,5 +1,7 @@
 package com.englishtown.stash.hook;
 
+import com.atlassian.sal.api.pluginsettings.PluginSettings;
+import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.atlassian.stash.hook.repository.RepositoryHookContext;
 import com.atlassian.stash.i18n.I18nService;
 import com.atlassian.stash.repository.RefChange;
@@ -43,6 +45,12 @@ public class MirrorRepositoryHookTest {
     private GitCommand<String> cmd;
     @Mock
     private ScheduledExecutorService executor;
+    @Mock
+    private PasswordEncryptor passwordEncryptor;
+    @Mock
+    private PluginSettingsFactory pluginSettingsFactory;
+    @Mock
+    private PluginSettings pluginSettings;
 
     private final String mirrorRepoUrl = "https://stash-mirror.englishtown.com/scm/test/test.git";
     private final String username = "test-user";
@@ -69,12 +77,16 @@ public class MirrorRepositoryHookTest {
         GitScm gitScm = mock(GitScm.class);
         when(gitScm.getCommandBuilderFactory()).thenReturn(builderFactory);
 
-        hook = new MirrorRepositoryHook(gitScm, mock(I18nService.class), executor);
+        when(pluginSettingsFactory.createSettingsForKey(anyString())).thenReturn(pluginSettings);
+
+        hook = new MirrorRepositoryHook(gitScm, mock(I18nService.class), executor, passwordEncryptor, pluginSettingsFactory);
 
     }
 
     @Test
     public void testPostReceive() throws Exception {
+
+        when(passwordEncryptor.decrypt(anyString())).thenReturn(password);
 
         Settings settings = mock(Settings.class);
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL))).thenReturn(mirrorRepoUrl);
@@ -99,7 +111,7 @@ public class MirrorRepositoryHookTest {
 
         GitScm gitScm = mock(GitScm.class);
         when(gitScm.getCommandBuilderFactory()).thenThrow(new RuntimeException("Intentional unit test exception"));
-        MirrorRepositoryHook hook = new MirrorRepositoryHook(gitScm, mock(I18nService.class), executor);
+        MirrorRepositoryHook hook = new MirrorRepositoryHook(gitScm, mock(I18nService.class), executor, passwordEncryptor, pluginSettingsFactory);
         hook.runMirrorCommand(mirrorRepoUrl, username, password, mock(Repository.class));
 
         verify(executor).submit(argumentCaptor.capture());
@@ -200,6 +212,7 @@ public class MirrorRepositoryHookTest {
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL), anyString());
         verify(errors).addFieldError(anyString(), anyString());
 
+        when(passwordEncryptor.isEncrypted(anyString())).thenReturn(true);
         errors = mock(SettingsValidationErrors.class);
         hook.validate(settings, errors, repo);
         verify(errors, never()).addFormError(anyString());

@@ -1,5 +1,7 @@
 package com.englishtown.stash.hook;
 
+import com.atlassian.sal.api.pluginsettings.PluginSettings;
+import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.atlassian.stash.hook.repository.AsyncPostReceiveRepositoryHook;
 import com.atlassian.stash.hook.repository.RepositoryHookContext;
 import com.atlassian.stash.i18n.I18nService;
@@ -16,15 +18,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, RepositorySettingsValidator {
 
+    public static final String PLUGIN_SETTINGS_KEY = "com.englishtown.stash.hook.mirror";
     static final String SETTING_MIRROR_REPO_URL = "mirrorRepoUrl";
     static final String SETTING_USERNAME = "username";
     static final String SETTING_PASSWORD = "password";
@@ -33,15 +39,29 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     private final GitScm gitScm;
     private final I18nService i18nService;
     private final ScheduledExecutorService executor;
+    private final PasswordEncryptor passwordEncryptor;
     private static final Logger logger = LoggerFactory.getLogger(MirrorRepositoryHook.class);
 
     public MirrorRepositoryHook(
             GitScm gitScm,
             I18nService i18nService,
-            ScheduledExecutorService executor) {
+            ScheduledExecutorService executor,
+            PasswordEncryptor passwordEncryptor,
+            PluginSettingsFactory pluginSettingsFactory
+    ) {
+        logger.debug("MirrorRepositoryHook: init started");
+
+        // Set fields
         this.gitScm = gitScm;
         this.i18nService = i18nService;
         this.executor = executor;
+        this.passwordEncryptor = passwordEncryptor;
+
+        // Init password encryptor
+        PluginSettings pluginSettings = pluginSettingsFactory.createSettingsForKey(PLUGIN_SETTINGS_KEY);
+        passwordEncryptor.init(pluginSettings);
+
+        logger.debug("MirrorRepositoryHook: init completed");
     }
 
     /**
@@ -71,9 +91,10 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
 
     }
 
-    void runMirrorCommand(String mirrorRepoUrl, String username, final String password, final Repository repository) {
+    void runMirrorCommand(String mirrorRepoUrl, String username, final String encryptedPassword, final Repository repository) {
 
         try {
+            final String password = passwordEncryptor.decrypt(encryptedPassword);
             final URI authenticatedUrl = getAuthenticatedUrl(mirrorRepoUrl, username, password);
 
             executor.submit(new Callable<Void>() {
@@ -179,6 +200,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
 
             // If no errors, run the mirror command
             if (count == 0) {
+                encryptPassword(settings, SETTING_PASSWORD, password);
                 runMirrorCommand(mirrorRepoUrl, username, password, repository);
             }
             logger.debug("MirrorRepositoryHook: validate completed with {} error(s).", count);
@@ -186,6 +208,37 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         } catch (Exception e) {
             logger.error("Error running MirrorRepositoryHook validate.", e);
             errors.addFormError(e.getMessage());
+        }
+
+    }
+
+    void encryptPassword(Settings settings, String settingName, String password) {
+
+        // Skip if already encrypted
+        if (passwordEncryptor.isEncrypted(password)) {
+            return;
+        }
+
+        try {
+            // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection
+            logger.info("Encrypting password");
+            Field field = settings.getClass().getDeclaredField("values");
+            field.setAccessible(true);
+
+            // Create mutable copy of values, and encrypt the password
+            @SuppressWarnings("unchecked")
+            Map<String, Object> values = (Map<String, Object>) field.get(settings);
+            values = new HashMap<String, Object>(values);
+            values.put(settingName, passwordEncryptor.encrypt(password));
+
+            field.set(settings, values);
+
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException("Unable to encrypt the password.  Check for an updated version of the mirror " +
+                    "hook.", e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Unable to encrypt the password.  Check for an updated version of the mirror " +
+                    "hook.", e);
         }
 
     }
