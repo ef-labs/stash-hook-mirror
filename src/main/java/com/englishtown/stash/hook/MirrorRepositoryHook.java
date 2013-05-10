@@ -21,14 +21,19 @@ import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, RepositorySettingsValidator {
+
+    static class MirrorSettings {
+        String mirrorRepoUrl;
+        String username;
+        String password;
+        String suffix;
+    }
 
     public static final String PLUGIN_SETTINGS_KEY = "com.englishtown.stash.hook.mirror";
     static final String SETTING_MIRROR_REPO_URL = "mirrorRepoUrl";
@@ -40,6 +45,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     private final I18nService i18nService;
     private final ScheduledExecutorService executor;
     private final PasswordEncryptor passwordEncryptor;
+    private final SettingsReflectionHelper settingsReflectionHelper;
     private static final Logger logger = LoggerFactory.getLogger(MirrorRepositoryHook.class);
 
     public MirrorRepositoryHook(
@@ -47,6 +53,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             I18nService i18nService,
             ScheduledExecutorService executor,
             PasswordEncryptor passwordEncryptor,
+            SettingsReflectionHelper settingsReflectionHelper,
             PluginSettingsFactory pluginSettingsFactory
     ) {
         logger.debug("MirrorRepositoryHook: init started");
@@ -56,6 +63,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         this.i18nService = i18nService;
         this.executor = executor;
         this.passwordEncryptor = passwordEncryptor;
+        this.settingsReflectionHelper = settingsReflectionHelper;
 
         // Init password encryptor
         PluginSettings pluginSettings = pluginSettingsFactory.createSettingsForKey(PLUGIN_SETTINGS_KEY);
@@ -82,20 +90,19 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
 
         logger.debug("MirrorRepositoryHook: postReceive started.");
 
-        Settings settings = context.getSettings();
-        String mirrorRepoUrl = settings.getString(SETTING_MIRROR_REPO_URL);
-        String username = settings.getString(SETTING_USERNAME);
-        String password = settings.getString(SETTING_PASSWORD);
+        List<MirrorSettings> mirrorSettings = getMirrorSettings(context.getSettings());
 
-        runMirrorCommand(mirrorRepoUrl, username, password, context.getRepository());
+        for (MirrorSettings settings : mirrorSettings) {
+            runMirrorCommand(settings, context.getRepository());
+        }
 
     }
 
-    void runMirrorCommand(String mirrorRepoUrl, String username, final String encryptedPassword, final Repository repository) {
+    void runMirrorCommand(MirrorSettings settings, final Repository repository) {
 
         try {
-            final String password = passwordEncryptor.decrypt(encryptedPassword);
-            final URI authenticatedUrl = getAuthenticatedUrl(mirrorRepoUrl, username, password);
+            final String password = passwordEncryptor.decrypt(settings.password);
+            final URI authenticatedUrl = getAuthenticatedUrl(settings.mirrorRepoUrl, settings.username, password);
 
             executor.submit(new Callable<Void>() {
 
@@ -164,46 +171,24 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             @Nonnull Repository repository) {
 
         try {
-            int count = 0;
+            boolean ok = true;
             logger.debug("MirrorRepositoryHook: validate started.");
 
-            String mirrorRepoUrl = settings.getString(SETTING_MIRROR_REPO_URL, "");
-            if (mirrorRepoUrl.isEmpty()) {
-                count++;
-                errors.addFieldError(SETTING_MIRROR_REPO_URL, "The mirror repo url is required.");
-            } else {
-                URI uri;
-                try {
-                    uri = URI.create(mirrorRepoUrl);
-                    if (!uri.getScheme().toLowerCase().startsWith("http") || mirrorRepoUrl.contains("@")) {
-                        count++;
-                        errors.addFieldError(SETTING_MIRROR_REPO_URL, "The mirror repo url must be a valid http(s) " +
-                                "URI and the user should be specified separately.");
-                    }
-                } catch (Exception ex) {
-                    count++;
-                    errors.addFieldError(SETTING_MIRROR_REPO_URL, "The mirror repo url must be a valid http(s) URI.");
+            List<MirrorSettings> mirrorSettings = getMirrorSettings(settings);
+
+            for (MirrorSettings ms : mirrorSettings) {
+                if (!validate(ms, settings, errors)) {
+                    ok = false;
                 }
             }
 
-            String username = settings.getString(SETTING_USERNAME, "");
-            if (username.isEmpty()) {
-                count++;
-                errors.addFieldError(SETTING_USERNAME, "The username is required.");
-            }
-
-            String password = settings.getString(SETTING_PASSWORD, "");
-            if (password.isEmpty()) {
-                count++;
-                errors.addFieldError(SETTING_PASSWORD, "The password is required.");
-            }
-
             // If no errors, run the mirror command
-            if (count == 0) {
-                encryptPassword(settings, SETTING_PASSWORD, password);
-                runMirrorCommand(mirrorRepoUrl, username, password, repository);
+            if (ok) {
+                updateSettings(mirrorSettings, settings);
+                for (MirrorSettings ms : mirrorSettings) {
+                    runMirrorCommand(ms, repository);
+                }
             }
-            logger.debug("MirrorRepositoryHook: validate completed with {} error(s).", count);
 
         } catch (Exception e) {
             logger.error("Error running MirrorRepositoryHook validate.", e);
@@ -212,34 +197,80 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
 
     }
 
-    void encryptPassword(Settings settings, String settingName, String password) {
+    List<MirrorSettings> getMirrorSettings(Settings settings) {
 
-        // Skip if already encrypted
-        if (passwordEncryptor.isEncrypted(password)) {
-            return;
+        List<MirrorSettings> results = new ArrayList<MirrorSettings>();
+        Map<String, Object> allSettings = settings.asMap();
+        int count = 0;
+
+        for (String key : allSettings.keySet()) {
+            if (key.startsWith(SETTING_MIRROR_REPO_URL)) {
+                String suffix = key.substring(SETTING_MIRROR_REPO_URL.length());
+
+                MirrorSettings ms = new MirrorSettings();
+                ms.mirrorRepoUrl = settings.getString(SETTING_MIRROR_REPO_URL + suffix, "");
+                ms.username = settings.getString(SETTING_USERNAME + suffix, "");
+                ms.password = settings.getString(SETTING_PASSWORD + suffix, "");
+                ms.suffix = count > 0 ? String.valueOf(count) : "";
+                results.add(ms);
+
+                count++;
+            }
         }
 
-        try {
-            // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection
-            logger.info("Encrypting password");
-            Field field = settings.getClass().getDeclaredField("values");
-            field.setAccessible(true);
+        return results;
+    }
 
-            // Create mutable copy of values, and encrypt the password
-            @SuppressWarnings("unchecked")
-            Map<String, Object> values = (Map<String, Object>) field.get(settings);
-            values = new HashMap<String, Object>(values);
-            values.put(settingName, passwordEncryptor.encrypt(password));
+    boolean validate(MirrorSettings ms, Settings settings, SettingsValidationErrors errors) {
 
-            field.set(settings, values);
+        boolean result = true;
 
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException("Unable to encrypt the password.  Check for an updated version of the mirror " +
-                    "hook.", e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Unable to encrypt the password.  Check for an updated version of the mirror " +
-                    "hook.", e);
+        if (ms.mirrorRepoUrl.isEmpty()) {
+            result = false;
+            errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix, "The mirror repo url is required.");
+        } else {
+            URI uri;
+            try {
+                uri = URI.create(ms.mirrorRepoUrl);
+                if (!uri.getScheme().toLowerCase().startsWith("http") || ms.mirrorRepoUrl.contains("@")) {
+                    result = false;
+                    errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
+                            "The mirror repo url must be a valid http(s) URI and the username " +
+                                    "should be specified separately.");
+                }
+            } catch (Exception ex) {
+                result = false;
+                errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
+                        "The mirror repo url must be a valid http(s) URI.");
+            }
         }
+
+        if (ms.username.isEmpty()) {
+            result = false;
+            errors.addFieldError(SETTING_USERNAME + ms.suffix, "The username is required.");
+        }
+
+        if (ms.password.isEmpty()) {
+            result = false;
+            errors.addFieldError(SETTING_PASSWORD + ms.suffix, "The password is required.");
+        }
+
+        return result;
+    }
+
+    void updateSettings(List<MirrorSettings> mirrorSettings, Settings settings) {
+
+        Map<String, Object> values = new HashMap<String, Object>();
+
+        // Store each mirror setting
+        for (MirrorSettings ms : mirrorSettings) {
+            values.put(SETTING_MIRROR_REPO_URL + ms.suffix, ms.mirrorRepoUrl);
+            values.put(SETTING_USERNAME + ms.suffix, ms.username);
+            values.put(SETTING_PASSWORD + ms.suffix, passwordEncryptor.encrypt(ms.password));
+        }
+
+        // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection
+        settingsReflectionHelper.set(values, settings);
 
     }
 

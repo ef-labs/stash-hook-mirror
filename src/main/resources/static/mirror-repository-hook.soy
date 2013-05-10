@@ -5,40 +5,77 @@
  * @param? errors
  */
 {template .view}
-    {call aui.form.textField}
-        {param id: 'mirrorRepoUrl' /}
-        {param value: $config['mirrorRepoUrl'] /}
-        {param labelContent}
-            {stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.label', 'Mirror Repo URL')}
-        {/param}
-        {param isRequired: true /}
-        {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.description',
-        'URL to the remote Stash mirrored repo') /}
-        {param extraClasses: 'long' /}
-        {param errorTexts: $errors ? $errors['mirrorRepoUrl'] : null /}
+
+    // Always add one subview
+    {call .subview data="all"}
+        {param index: '' /}
     {/call}
-    {call aui.form.textField}
-        {param id: 'username' /}
-        {param value: $config['username'] /}
-        {param labelContent}
-            {stash_i18n('com.englishtown.stash.hook.mirror.strings.username.label', 'Username')}
-        {/param}
-        {param isRequired: true /}
-        {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.username.description',
-        'The username to use for pushing to the mirror') /}
-        {param extraClasses: 'long' /}
-        {param errorTexts: $errors ? $errors['username'] : null /}
+
+    // Add additional mirrors, up to 10 total
+    {foreach $index in [1, 2, 3, 4, 5, 6, 7, 8, 9]}
+        {if $config['mirrorRepoUrl' + $index] or $config['username' + $index]}
+            {call .subview data="all"}
+              {param index: $index /}
+            {/call}
+        {/if}
+    {/foreach}
+
+    // Button to add additional mirrors
+    {call aui.form.button}
+        {param id: 'et-add-button' /}
+        {param text: 'Add Mirror' /}
     {/call}
-    {call aui.form.passwordField}
-        {param id: 'password' /}
-        {param value: $config['password'] /}
-        {param labelContent}
-            {stash_i18n('com.englishtown.stash.hook.mirror.strings.password.label', 'Password')}
-        {/param}
-        {param isRequired: true /}
-        {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.password.description',
-        'The password to use for pushing to the mirror') /}
-        {param extraClasses: 'long' /}
-        {param errorTexts: $errors ? $errors['password'] : null /}
-    {/call}
+
+    // Call init method with subview callback
+    <script>
+        require("et/hook/mirror").init(com.englishtown.stash.hook.mirrorrepositoryhook.subview, aui.form.button);
+    </script>
 {/template}
+
+/**
+ * @param  config
+ * @param? errors
+ * @param  index
+ */
+{template .subview}
+    <fieldset class="et-mirror-group">
+        {call aui.form.textField}
+            {param id: 'mirrorRepoUrl' + $index /}
+            {param value: $config['mirrorRepoUrl' + $index] /}
+            {param labelContent}
+                {stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.label', 'Mirror Repo URL')}
+            {/param}
+            {param isRequired: true /}
+            {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.description',
+            'URL to the remote Stash mirrored repo') /}
+            {param extraClasses: 'long et-mirror-repo' /}
+            {param errorTexts: $errors ? $errors['mirrorRepoUrl' + $index] : null /}
+        {/call}
+        {call aui.form.textField}
+            {param id: 'username' + $index /}
+            {param value: $config['username' + $index] /}
+            {param labelContent}
+                {stash_i18n('com.englishtown.stash.hook.mirror.strings.username.label', 'Username')}
+            {/param}
+            {param isRequired: true /}
+            {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.username.description',
+            'The username to use for pushing to the mirror') /}
+            {param extraClasses: 'long' /}
+            {param errorTexts: $errors ? $errors['username' + $index] : null /}
+        {/call}
+        {call aui.form.passwordField}
+            {param id: 'password' + $index /}
+            {param value: $config['password' + $index] /}
+            {param labelContent}
+                {stash_i18n('com.englishtown.stash.hook.mirror.strings.password.label', 'Password')}
+            {/param}
+            {param isRequired: true /}
+            {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.password.description',
+            'The password to use for pushing to the mirror') /}
+            {param extraClasses: 'long' /}
+            {param errorTexts: $errors ? $errors['password' + $index] : null /}
+        {/call}
+    </fieldset>
+{/template}
+
+
