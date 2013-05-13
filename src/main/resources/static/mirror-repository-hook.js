@@ -3,7 +3,7 @@ define('et/hook/mirror', ['jquery', 'exports'], function ($, exports) {
     exports.init = function (createSubView, createButton) {
         $('#et-add-button').click(function () {
             try {
-                var currIndex, index, name, html;
+                var currIndex, index = 0, name, html;
 
                 // Determine the current index from the last password input
                 name = $('div.hook-config-contents input:password').last().attr("name");
@@ -11,8 +11,6 @@ define('et/hook/mirror', ['jquery', 'exports'], function ($, exports) {
                 if (name && name.length >= 8) {
                     currIndex = parseInt(name.substring(8));
                     index = (isNaN(currIndex) ? 0 : currIndex) + 1;
-                } else {
-                    index = '';
                 }
 
                 // Insert template after last field-group div

@@ -210,10 +210,9 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                 ms.mirrorRepoUrl = settings.getString(SETTING_MIRROR_REPO_URL + suffix, "");
                 ms.username = settings.getString(SETTING_USERNAME + suffix, "");
                 ms.password = settings.getString(SETTING_PASSWORD + suffix, "");
-                ms.suffix = count > 0 ? String.valueOf(count) : "";
-                results.add(ms);
+                ms.suffix = String.valueOf(count++);
 
-                count++;
+                results.add(ms);
             }
         }
 
