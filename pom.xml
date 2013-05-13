@@ -26,6 +26,7 @@
     <packaging>atlassian-plugin</packaging>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <stash.version>2.3.1</stash.version>
         <stash.data.version>2.3.1</stash.data.version>
         <amps.version>4.1.7</amps.version>
@@ -100,6 +101,11 @@
             <version>${common-lang.version}</version>
         </dependency>
         <!-- WIRED TEST RUNNER DEPENDENCIES -->
+        <dependency>
+            <groupId>com.atlassian.stash</groupId>
+            <artifactId>stash-service-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.atlassian.plugins</groupId>
             <artifactId>atlassian-plugins-osgi-testrunner</artifactId>
