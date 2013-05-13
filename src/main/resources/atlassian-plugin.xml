@@ -15,6 +15,9 @@
     <component key="passwordEncryptor" class="com.englishtown.stash.hook.DefaultPasswordEncryptor">
         <interface>com.englishtown.stash.hook.PasswordEncryptor</interface>
     </component>
+    <component key="settingsReflectionHelper" class="com.englishtown.stash.hook.DefaultSettingsReflectionHelper">
+        <interface>com.englishtown.stash.hook.SettingsReflectionHelper</interface>
+    </component>
 
     <!-- add our i18n resource -->
     <resource type="i18n" name="i18n" location="stash-hook-mirror"/>
