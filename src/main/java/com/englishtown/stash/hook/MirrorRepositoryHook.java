@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -28,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, RepositorySettingsValidator {
 
-    static class MirrorSettings {
+    protected static class MirrorSettings {
         String mirrorRepoUrl;
         String username;
         String password;
@@ -147,7 +146,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         }
     }
 
-    URI getAuthenticatedUrl(String mirrorRepoUrl, String username, String password) throws URISyntaxException {
+    protected URI getAuthenticatedUrl(String mirrorRepoUrl, String username, String password) throws URISyntaxException {
 
         URI uri = URI.create(mirrorRepoUrl);
         String userInfo = username + ":" + password;
@@ -197,7 +196,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
 
     }
 
-    List<MirrorSettings> getMirrorSettings(Settings settings) {
+    protected List<MirrorSettings> getMirrorSettings(Settings settings) {
 
         List<MirrorSettings> results = new ArrayList<MirrorSettings>();
         Map<String, Object> allSettings = settings.asMap();
@@ -221,7 +220,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         return results;
     }
 
-    boolean validate(MirrorSettings ms, Settings settings, SettingsValidationErrors errors) {
+    protected boolean validate(MirrorSettings ms, Settings settings, SettingsValidationErrors errors) {
 
         boolean result = true;
 
@@ -258,7 +257,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         return result;
     }
 
-    void updateSettings(List<MirrorSettings> mirrorSettings, Settings settings) {
+    protected void updateSettings(List<MirrorSettings> mirrorSettings, Settings settings) {
 
         Map<String, Object> values = new HashMap<String, Object>();
 

@@ -3,7 +3,6 @@ package com.englishtown.stash.hook;
 import com.atlassian.stash.setting.Settings;
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
