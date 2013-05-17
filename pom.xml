@@ -27,8 +27,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <stash.version>2.3.1</stash.version>
-        <stash.data.version>2.3.1</stash.data.version>
+        <stash.version>2.4.1</stash.version>
+        <stash.data.version>2.4.1</stash.data.version>
         <amps.version>4.1.7</amps.version>
         <plugin.testrunner.version>1.1.1</plugin.testrunner.version>
 
