@@ -24,7 +24,7 @@
 
     <repository-hook name="Mirror Repository Hook" i18n-name-key="mirror-repository-hook.name"
                      key="mirror-repository-hook" class="com.englishtown.stash.hook.MirrorRepositoryHook">
-        <description key="mirror-repository-hook.description">Mirror Repository Hook</description>
+        <description key="mirror-repository-hook.description">Mirror Hook</description>
         <icon>/icons/mirror-icon.png</icon>
         <config-form name="Mirror Hook Config" key="mirror-repository-hook-config">
             <view>com.englishtown.stash.hook.mirrorrepositoryhook.view</view>
