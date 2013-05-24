@@ -6,7 +6,7 @@
 
     <groupId>com.englishtown</groupId>
     <artifactId>stash-hook-mirror</artifactId>
-    <version>1.2.0-SNAPSHOT</version>
+    <version>1.2.0</version>
 
     <organization>
         <name>Englishtown</name>
@@ -68,6 +68,7 @@
         <dependency>
             <groupId>com.atlassian.stash</groupId>
             <artifactId>stash-scm-git</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.atlassian.stash</groupId>
