@@ -6,7 +6,7 @@
 
     <groupId>com.englishtown</groupId>
     <artifactId>stash-hook-mirror</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 
     <organization>
         <name>Englishtown</name>
@@ -29,7 +29,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <stash.version>2.4.1</stash.version>
         <stash.data.version>2.4.1</stash.data.version>
-        <amps.version>4.1.7</amps.version>
+        <amps.version>4.2.0</amps.version>
         <plugin.testrunner.version>1.1.1</plugin.testrunner.version>
 
         <junit.version>4.10</junit.version>
@@ -68,7 +68,6 @@
         <dependency>
             <groupId>com.atlassian.stash</groupId>
             <artifactId>stash-scm-git</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.atlassian.stash</groupId>
