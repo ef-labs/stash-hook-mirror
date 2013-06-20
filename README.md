@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/englishtown/stash-hook-mirror.png)](https://travis-ci.org/englishtown/stash-hook-mirror)
+[![Build Status](https://travis-ci.org/englishtown/stash-hook-mirror.png)](https://travis-ci.org/englishtown/stash-hook-mirror) [![Coverage Status](https://coveralls.io/repos/englishtown/stash-hook-mirror/badge.png)](https://coveralls.io/r/englishtown/stash-hook-mirror)
 
 #Stash Repository Hook for Mirroring
 
