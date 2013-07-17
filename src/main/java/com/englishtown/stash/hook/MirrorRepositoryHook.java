@@ -152,6 +152,12 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     protected URI getAuthenticatedUrl(String mirrorRepoUrl, String username, String password) throws URISyntaxException {
 
         URI uri = URI.create(mirrorRepoUrl);
+
+        // ssh doesn't have username/password
+        if (uri.getScheme().equals("ssh")) {
+            return uri;
+        }
+
         String userInfo = username + ":" + password;
 
         return new URI(uri.getScheme(), userInfo, uri.getHost(), uri.getPort(),
@@ -225,6 +231,8 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     protected boolean validate(MirrorSettings ms, Settings settings, SettingsValidationErrors errors) {
 
         boolean result = true;
+        boolean isHttp = false;
+        boolean isSsh = false;
 
         if (ms.mirrorRepoUrl.isEmpty()) {
             result = false;
@@ -233,27 +241,50 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             URI uri;
             try {
                 uri = URI.create(ms.mirrorRepoUrl);
-                if (!uri.getScheme().toLowerCase().startsWith("http") || ms.mirrorRepoUrl.contains("@")) {
+                String scheme = uri.getScheme().toLowerCase();
+
+                if (scheme.equals("ssh")) {
+                    isSsh = true;
+                    if (!ms.mirrorRepoUrl.startsWith("ssh://git@")) {
+                        result = false;
+                        errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
+                                "An ssh URL should start with ssh://git@");
+                    }
+                } else if (scheme.startsWith("http")) {
+                    isHttp = true;
+                    if (ms.mirrorRepoUrl.contains("@")) {
+                        result = false;
+                        errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
+                                "The username and password should not be included.");
+                    }
+                } else {
                     result = false;
                     errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
-                            "The mirror repo url must be a valid http(s) URI and the username " +
-                                    "should be specified separately.");
+                            "The mirror repo url must be a ssh or http(s) URL.");
                 }
+
             } catch (Exception ex) {
                 result = false;
                 errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
-                        "The mirror repo url must be a valid http(s) URI.");
+                        "The mirror repo url must be a valid ssh or http(s) URL.");
             }
         }
 
-        if (ms.username.isEmpty()) {
-            result = false;
-            errors.addFieldError(SETTING_USERNAME + ms.suffix, "The username is required.");
-        }
+        // HTTP must have username and password
+        if (isHttp) {
+            if (ms.username.isEmpty()) {
+                result = false;
+                errors.addFieldError(SETTING_USERNAME + ms.suffix, "The username is required when using http(s).");
+            }
 
-        if (ms.password.isEmpty()) {
-            result = false;
-            errors.addFieldError(SETTING_PASSWORD + ms.suffix, "The password is required.");
+            if (ms.password.isEmpty()) {
+                result = false;
+                errors.addFieldError(SETTING_PASSWORD + ms.suffix, "The password is required when using http(s).");
+            }
+        }
+        // SSH should not have username or password
+        if (isSsh) {
+            ms.password = ms.username = "";
         }
 
         return result;
@@ -267,7 +298,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         for (MirrorSettings ms : mirrorSettings) {
             values.put(SETTING_MIRROR_REPO_URL + ms.suffix, ms.mirrorRepoUrl);
             values.put(SETTING_USERNAME + ms.suffix, ms.username);
-            values.put(SETTING_PASSWORD + ms.suffix, passwordEncryptor.encrypt(ms.password));
+            values.put(SETTING_PASSWORD + ms.suffix, (ms.password.isEmpty() ? ms.password : passwordEncryptor.encrypt(ms.password)));
         }
 
         // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection

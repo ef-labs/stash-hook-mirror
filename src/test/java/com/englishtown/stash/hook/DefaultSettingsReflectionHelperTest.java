@@ -11,11 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 /**
- * Created with IntelliJ IDEA.
- * User: adriangonzalez
- * Date: 5/13/13
- * Time: 3:54 PM
- * To change this template use File | Settings | File Templates.
+ * Unit tests for {@link DefaultSettingsReflectionHelper}
  */
 public class DefaultSettingsReflectionHelperTest {
 

@@ -56,7 +56,8 @@ public class MirrorRepositoryHookTest {
     @Mock
     private PluginSettings pluginSettings;
 
-    private final String mirrorRepoUrl = "https://stash-mirror.englishtown.com/scm/test/test.git";
+    private final String mirrorRepoUrlHttp = "https://stash-mirror.englishtown.com/scm/test/test.git";
+    private final String mirrorRepoUrlSsh = "ssh://git@stash-mirror.englishtown.com/scm/test/test.git";
     private final String username = "test-user";
     private final String password = "test-password";
     private final String repository = "https://test-user:test-password@stash-mirror.englishtown.com/scm/test/test.git";
@@ -98,7 +99,7 @@ public class MirrorRepositoryHookTest {
 
         Settings settings = mock(Settings.class);
         when(settings.asMap()).thenReturn(map);
-        when(settings.getString(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL), eq(""))).thenReturn(mirrorRepoUrl);
+        when(settings.getString(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL), eq(""))).thenReturn(mirrorRepoUrlHttp);
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_USERNAME), eq(""))).thenReturn(username);
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_PASSWORD), eq(""))).thenReturn(password);
 
@@ -123,7 +124,7 @@ public class MirrorRepositoryHookTest {
         MirrorRepositoryHook hook = new MirrorRepositoryHook(gitScm, mock(I18nService.class), executor,
                 passwordEncryptor, settingsReflectionHelper, pluginSettingsFactory);
         MirrorRepositoryHook.MirrorSettings ms = new MirrorRepositoryHook.MirrorSettings();
-        ms.mirrorRepoUrl = mirrorRepoUrl;
+        ms.mirrorRepoUrl = mirrorRepoUrlHttp;
         ms.username = username;
         ms.password = password;
         hook.runMirrorCommand(ms, mock(Repository.class));
@@ -177,7 +178,7 @@ public class MirrorRepositoryHookTest {
 
         URI result;
 
-        result = hook.getAuthenticatedUrl(mirrorRepoUrl, username, password);
+        result = hook.getAuthenticatedUrl(mirrorRepoUrlHttp, username, password);
         assertEquals(repository, result.toString());
 
     }
@@ -195,15 +196,22 @@ public class MirrorRepositoryHookTest {
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), eq("")))
                 .thenThrow(new RuntimeException("Intentional unit test exception"))
                 .thenReturn("")
+                .thenReturn(mirrorRepoUrlHttp)
                 .thenReturn("invalid uri")
                 .thenReturn("http://should-not:have-user@stash-mirror.englishtown.com/scm/test/test.git")
-                .thenReturn(mirrorRepoUrl);
+                .thenReturn("ssh://user@stash-mirror.englishtown.com/scm/test/test.git")
+                .thenReturn(mirrorRepoUrlSsh)
+                .thenReturn(mirrorRepoUrlHttp);
 
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), eq("")))
+                .thenReturn("")
+                .thenReturn("")
                 .thenReturn("")
                 .thenReturn(username);
 
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), eq("")))
+                .thenReturn("")
+                .thenReturn("")
                 .thenReturn("")
                 .thenReturn(password);
 
@@ -213,11 +221,19 @@ public class MirrorRepositoryHookTest {
         errors = mock(SettingsValidationErrors.class);
         hook.validate(settings, errors, repo);
         verify(errors, times(1)).addFormError(anyString());
+        verify(errors, never()).addFieldError(anyString(), anyString());
 
         errors = mock(SettingsValidationErrors.class);
         hook.validate(settings, errors, repo);
         verify(errors, never()).addFormError(anyString());
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
+        verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
+        verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
+
+        errors = mock(SettingsValidationErrors.class);
+        hook.validate(settings, errors, repo);
+        verify(errors, never()).addFormError(anyString());
+        verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
 
@@ -231,7 +247,20 @@ public class MirrorRepositoryHookTest {
         hook.validate(settings, errors, repo);
         verify(errors, never()).addFormError(anyString());
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
-        verify(errors).addFieldError(anyString(), anyString());
+        verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
+        verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
+
+        errors = mock(SettingsValidationErrors.class);
+        hook.validate(settings, errors, repo);
+        verify(errors, never()).addFormError(anyString());
+        verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
+        verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
+        verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
+
+        errors = mock(SettingsValidationErrors.class);
+        hook.validate(settings, errors, repo);
+        verify(errors, never()).addFormError(anyString());
+        verify(errors, never()).addFieldError(anyString(), anyString());
 
         when(passwordEncryptor.isEncrypted(anyString())).thenReturn(true);
         errors = mock(SettingsValidationErrors.class);

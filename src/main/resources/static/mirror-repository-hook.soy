@@ -47,7 +47,7 @@
             {/param}
             {param isRequired: true /}
             {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.description',
-            'URL to the remote mirrored repo') /}
+            'The ssh or http(s) URL to the remote mirrored repo') /}
             {param extraClasses: 'long et-mirror-repo' /}
             {param errorTexts: $errors ? $errors['mirrorRepoUrl' + $index] : null /}
         {/call}
@@ -57,9 +57,8 @@
             {param labelContent}
                 {stash_i18n('com.englishtown.stash.hook.mirror.strings.username.label', 'Username')}
             {/param}
-            {param isRequired: true /}
             {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.username.description',
-            'The username to use for pushing to the mirror') /}
+            'The username to use for pushing to the mirror over http(s)') /}
             {param extraClasses: 'long' /}
             {param errorTexts: $errors ? $errors['username' + $index] : null /}
         {/call}
@@ -69,9 +68,8 @@
             {param labelContent}
                 {stash_i18n('com.englishtown.stash.hook.mirror.strings.password.label', 'Password')}
             {/param}
-            {param isRequired: true /}
             {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.password.description',
-            'The password to use for pushing to the mirror') /}
+            'The password to use for pushing to the mirror over http(s)') /}
             {param extraClasses: 'long' /}
             {param errorTexts: $errors ? $errors['password' + $index] : null /}
         {/call}
