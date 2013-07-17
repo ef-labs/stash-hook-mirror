@@ -114,11 +114,14 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                         CommandExitHandler exitHandler = new GitCommandExitHandler(i18nService, repository);
                         PasswordHandler passwordHandler = new PasswordHandler(password, exitHandler);
 
-                        // Call push command with the mirror flag set
+                        // Call push command with the prune flag and refspecs for heads and tags
+                        // Do not use the mirror flag as pull-request refs are included
                         String result = builder
                                 .command("push")
-                                .argument("--mirror")
+                                .argument("--prune") // this deletes locally deleted branches
                                 .argument(authenticatedUrl.toString())
+                                .argument("+refs/heads/*:refs/heads/*") // Only mirror heads
+                                .argument("+refs/tags/*:refs/tags/*") // and tags
                                 .errorHandler(passwordHandler)
                                 .exitHandler(passwordHandler)
                                 .build(passwordHandler)

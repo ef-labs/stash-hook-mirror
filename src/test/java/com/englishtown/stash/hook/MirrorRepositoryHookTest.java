@@ -164,8 +164,10 @@ public class MirrorRepositoryHookTest {
         callable.call();
 
         verify(builder, times(1)).command(eq("push"));
-        verify(builder, times(1)).argument(eq("--mirror"));
+        verify(builder, times(1)).argument(eq("--prune"));
         verify(builder, times(1)).argument(eq(repository));
+        verify(builder, times(1)).argument(eq("+refs/heads/*:refs/heads/*"));
+        verify(builder, times(1)).argument(eq("+refs/tags/*:refs/tags/*"));
         verify(cmd, times(1)).call();
 
     }
