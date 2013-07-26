@@ -149,12 +149,11 @@ public class MirrorRepositoryHookTest {
         callable = argumentCaptor.getValue();
         callable.call();
 
-        verify(executor, times(5)).schedule(argumentCaptor.capture(), anyInt(), any(TimeUnit.class));
-        callable = argumentCaptor.getValue();
-        callable.call();
-
         // Make sure it is only called 5 times
-        verify(executor, times(5)).schedule(argumentCaptor.capture(), anyInt(), any(TimeUnit.class));
+        callable.call();
+        callable.call();
+        callable.call();
+        verify(executor, times(4)).schedule(argumentCaptor.capture(), anyInt(), any(TimeUnit.class));
 
     }
 

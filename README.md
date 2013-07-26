@@ -15,3 +15,8 @@ The following is a plugin for Atlassian Stash to provide repository mirroring to
 Full documentation is always available at:
 
 https://developer.atlassian.com/display/DOCS/Introduction+to+the+Atlassian+Plugin+SDK
+
+
+
+The plugin can be found on the Atlassian Marketplace here:
+https://marketplace.atlassian.com/plugins/com.englishtown.stash-hook-mirror
