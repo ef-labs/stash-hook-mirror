@@ -5,10 +5,10 @@ import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.atlassian.stash.hook.repository.AsyncPostReceiveRepositoryHook;
 import com.atlassian.stash.hook.repository.RepositoryHookContext;
 import com.atlassian.stash.i18n.I18nService;
-import com.atlassian.stash.internal.scm.git.GitCommandExitHandler;
 import com.atlassian.stash.repository.RefChange;
 import com.atlassian.stash.repository.Repository;
 import com.atlassian.stash.scm.CommandExitHandler;
+import com.atlassian.stash.scm.DefaultCommandExitHandler;
 import com.atlassian.stash.scm.git.GitScm;
 import com.atlassian.stash.scm.git.GitScmCommandBuilder;
 import com.atlassian.stash.setting.RepositorySettingsValidator;
@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -111,8 +112,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                 public Void call() throws Exception {
                     try {
                         GitScmCommandBuilder builder = gitScm.getCommandBuilderFactory().builder(repository);
-                        CommandExitHandler exitHandler = new GitCommandExitHandler(i18nService, repository);
-                        PasswordHandler passwordHandler = new PasswordHandler(password, exitHandler);
+                        PasswordHandler passwordHandler = getPasswordHandler(builder, password);
 
                         // Call push command with the prune flag and refspecs for heads and tags
                         // Do not use the mirror flag as pull-request refs are included
@@ -130,12 +130,12 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                         logger.debug("MirrorRepositoryHook: postReceive completed with result '{}'.", result);
 
                     } catch (Exception e) {
-                        if (++attempts > MAX_ATTEMPTS) {
-                            logger.error("Failed to mirror repository " + repository.getName() + " after " + --attempts
+                        if (++attempts >= MAX_ATTEMPTS) {
+                            logger.error("Failed to mirror repository " + repository.getName() + " after " + attempts
                                     + " attempts.", e);
                         } else {
                             logger.warn("Failed to mirror repository " + repository.getName() + ", " +
-                                    "retrying in 1 minute.");
+                                    "retrying in 1 minute (attempt {} of {}).", attempts, MAX_ATTEMPTS);
                             executor.schedule(this, 1, TimeUnit.MINUTES);
                         }
                     }
@@ -304,6 +304,22 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection
         settingsReflectionHelper.set(values, settings);
 
+    }
+
+    protected PasswordHandler getPasswordHandler(GitScmCommandBuilder builder, String password) {
+
+        try {
+            Method method = builder.getClass().getDeclaredMethod("createExitHandler");
+            method.setAccessible(true);
+            CommandExitHandler exitHandler = (CommandExitHandler) method.invoke(builder);
+
+            return new PasswordHandler(password, exitHandler);
+
+        } catch (Throwable t) {
+            logger.warn("Unable to create exit handler", t);
+        }
+
+        return new PasswordHandler(password, new DefaultCommandExitHandler(i18nService));
     }
 
 }
