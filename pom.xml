@@ -6,7 +6,7 @@
 
     <groupId>com.englishtown</groupId>
     <artifactId>stash-hook-mirror</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 
     <organization>
         <name>Englishtown</name>
@@ -27,9 +27,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <stash.version>2.4.1</stash.version>
-        <stash.data.version>2.4.1</stash.data.version>
-        <amps.version>4.2.3</amps.version>
+        <stash.version>2.6.0</stash.version>
+        <stash.data.version>2.6.0</stash.data.version>
+        <amps.version>4.2.5</amps.version>
         <plugin.testrunner.version>1.1.1</plugin.testrunner.version>
 
         <junit.version>4.10</junit.version>
