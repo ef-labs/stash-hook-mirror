@@ -21,14 +21,15 @@
     {/foreach}
 
     // Button to add additional mirrors
-    {call aui.form.button}
+    {call stash.buttons.button}
         {param id: 'et-add-button' /}
-        {param text: 'Add Mirror' /}
+        {param buttonText: 'Add Mirror' /}
+        {param extraAttributes: 'type=button' /}
     {/call}
 
     // Call init method with subview callback
     <script>
-        require("et/hook/mirror").init(com.englishtown.stash.hook.mirrorrepositoryhook.subview, aui.form.button);
+        require("et/hook/mirror").init(com.englishtown.stash.hook.mirrorrepositoryhook.subview, stash.buttons.button);
     </script>
 {/template}
 
