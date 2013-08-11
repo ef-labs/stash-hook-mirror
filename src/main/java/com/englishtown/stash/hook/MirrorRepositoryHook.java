@@ -102,7 +102,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
 
         try {
             final String password = passwordEncryptor.decrypt(settings.password);
-            final URI authenticatedUrl = getAuthenticatedUrl(settings.mirrorRepoUrl, settings.username, password);
+            final String authenticatedUrl = getAuthenticatedUrl(settings.mirrorRepoUrl, settings.username, password);
 
             executor.submit(new Callable<Void>() {
 
@@ -119,7 +119,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                         String result = builder
                                 .command("push")
                                 .argument("--prune") // this deletes locally deleted branches
-                                .argument(authenticatedUrl.toString())
+                                .argument(authenticatedUrl)
                                 .argument("+refs/heads/*:refs/heads/*") // Only mirror heads
                                 .argument("+refs/tags/*:refs/tags/*") // and tags
                                 .errorHandler(passwordHandler)
@@ -149,19 +149,18 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         }
     }
 
-    protected URI getAuthenticatedUrl(String mirrorRepoUrl, String username, String password) throws URISyntaxException {
+    protected String getAuthenticatedUrl(String mirrorRepoUrl, String username, String password) throws URISyntaxException {
 
-        URI uri = URI.create(mirrorRepoUrl);
-
-        // ssh doesn't have username/password
-        if (uri.getScheme().equals("ssh")) {
-            return uri;
+        // Only http(s) has username/password
+        if (!mirrorRepoUrl.toLowerCase().startsWith("http")) {
+            return mirrorRepoUrl;
         }
 
+        URI uri = URI.create(mirrorRepoUrl);
         String userInfo = username + ":" + password;
 
         return new URI(uri.getScheme(), userInfo, uri.getHost(), uri.getPort(),
-                uri.getPath(), uri.getQuery(), uri.getFragment());
+                uri.getPath(), uri.getQuery(), uri.getFragment()).toString();
 
     }
 
@@ -232,41 +231,26 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
 
         boolean result = true;
         boolean isHttp = false;
-        boolean isSsh = false;
 
         if (ms.mirrorRepoUrl.isEmpty()) {
             result = false;
             errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix, "The mirror repo url is required.");
         } else {
-            URI uri;
             try {
-                uri = URI.create(ms.mirrorRepoUrl);
+                URI uri = URI.create(ms.mirrorRepoUrl);
                 String scheme = uri.getScheme().toLowerCase();
 
-                if (scheme.equals("ssh")) {
-                    isSsh = true;
-                    if (!ms.mirrorRepoUrl.startsWith("ssh://git@")) {
-                        result = false;
-                        errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
-                                "An ssh URL should start with ssh://git@");
-                    }
-                } else if (scheme.startsWith("http")) {
+                if (scheme.startsWith("http")) {
                     isHttp = true;
                     if (ms.mirrorRepoUrl.contains("@")) {
                         result = false;
                         errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
                                 "The username and password should not be included.");
                     }
-                } else {
-                    result = false;
-                    errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
-                            "The mirror repo url must be a ssh or http(s) URL.");
                 }
-
             } catch (Exception ex) {
-                result = false;
-                errors.addFieldError(SETTING_MIRROR_REPO_URL + ms.suffix,
-                        "The mirror repo url must be a valid ssh or http(s) URL.");
+                // Not a valid url, assume it is something git can read
+
             }
         }
 
@@ -281,9 +265,8 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                 result = false;
                 errors.addFieldError(SETTING_PASSWORD + ms.suffix, "The password is required when using http(s).");
             }
-        }
-        // SSH should not have username or password
-        if (isSsh) {
+        } else {
+            // Only http should have username or password
             ms.password = ms.username = "";
         }
 

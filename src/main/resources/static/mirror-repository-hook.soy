@@ -48,7 +48,7 @@
             {/param}
             {param isRequired: true /}
             {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.description',
-            'The ssh or http(s) URL to the remote mirrored repo') /}
+            'The GIT URL (ssh, git, http(s), file) to the remote mirrored repo') /}
             {param extraClasses: 'long et-mirror-repo' /}
             {param errorTexts: $errors ? $errors['mirrorRepoUrl' + $index] : null /}
         {/call}
