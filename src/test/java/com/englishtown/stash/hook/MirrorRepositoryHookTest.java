@@ -175,10 +175,8 @@ public class MirrorRepositoryHookTest {
     @Test
     public void testGetAuthenticatedUrl() throws Exception {
 
-        URI result;
-
-        result = hook.getAuthenticatedUrl(mirrorRepoUrlHttp, username, password);
-        assertEquals(repository, result.toString());
+        String result = hook.getAuthenticatedUrl(mirrorRepoUrlHttp, username, password);
+        assertEquals(repository, result);
 
     }
 
@@ -239,8 +237,8 @@ public class MirrorRepositoryHookTest {
         errors = mock(SettingsValidationErrors.class);
         hook.validate(settings, errors, repo);
         verify(errors, never()).addFormError(anyString());
-        verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
-        verify(errors).addFieldError(anyString(), anyString());
+        verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
+        verify(errors, never()).addFieldError(anyString(), anyString());
 
         errors = mock(SettingsValidationErrors.class);
         hook.validate(settings, errors, repo);
@@ -252,7 +250,7 @@ public class MirrorRepositoryHookTest {
         errors = mock(SettingsValidationErrors.class);
         hook.validate(settings, errors, repo);
         verify(errors, never()).addFormError(anyString());
-        verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
+        verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
 
