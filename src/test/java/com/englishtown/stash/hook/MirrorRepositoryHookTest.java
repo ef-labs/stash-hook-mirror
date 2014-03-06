@@ -6,6 +6,7 @@ import com.atlassian.stash.hook.repository.RepositoryHookContext;
 import com.atlassian.stash.i18n.I18nService;
 import com.atlassian.stash.repository.RefChange;
 import com.atlassian.stash.repository.Repository;
+import com.atlassian.stash.repository.RepositoryMetadataService;
 import com.atlassian.stash.scm.CommandErrorHandler;
 import com.atlassian.stash.scm.CommandExitHandler;
 import com.atlassian.stash.scm.CommandOutputHandler;
@@ -20,6 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
@@ -55,6 +57,8 @@ public class MirrorRepositoryHookTest {
     private PluginSettingsFactory pluginSettingsFactory;
     @Mock
     private PluginSettings pluginSettings;
+    @Mock
+    private RepositoryMetadataService repositoryMetadataService;
 
     private final String mirrorRepoUrlHttp = "https://stash-mirror.englishtown.com/scm/test/test.git";
     private final String mirrorRepoUrlSsh = "ssh://git@stash-mirror.englishtown.com/scm/test/test.git";
@@ -85,35 +89,29 @@ public class MirrorRepositoryHookTest {
         when(pluginSettingsFactory.createSettingsForKey(anyString())).thenReturn(pluginSettings);
 
         hook = new MirrorRepositoryHook(gitScm, mock(I18nService.class), executor, passwordEncryptor
-                , settingsReflectionHelper, pluginSettingsFactory);
+                , settingsReflectionHelper, pluginSettingsFactory, repositoryMetadataService);
 
     }
 
     @Test
     public void testPostReceive() throws Exception {
-
         when(passwordEncryptor.decrypt(anyString())).thenReturn(password);
-
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL, "");
-
-        Settings settings = mock(Settings.class);
-        when(settings.asMap()).thenReturn(map);
-        when(settings.getString(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL), eq(""))).thenReturn(mirrorRepoUrlHttp);
-        when(settings.getString(eq(MirrorRepositoryHook.SETTING_USERNAME), eq(""))).thenReturn(username);
-        when(settings.getString(eq(MirrorRepositoryHook.SETTING_PASSWORD), eq(""))).thenReturn(password);
 
         Repository repo = mock(Repository.class);
         when(repo.getName()).thenReturn("test");
 
-        RepositoryHookContext context = mock(RepositoryHookContext.class);
-        when(context.getSettings()).thenReturn(settings);
-        when(context.getRepository()).thenReturn(repo);
-
-        Collection<RefChange> refChanges = new ArrayList<RefChange>();
-
-        hook.postReceive(context, refChanges);
+        hook.postReceive(buildContext(repo), new ArrayList<RefChange>());
         verifyExecutor();
+    }
+
+    @Test
+    public void testEmptyRepositoriesNotMirrored() {
+        Repository repo = mock(Repository.class);
+        when(repositoryMetadataService.isEmpty(repo)).thenReturn(true);
+
+        hook.postReceive(buildContext(repo), new ArrayList<RefChange>());
+
+        verify(executor, never()).submit(Matchers.<Callable<Object>>any());
     }
 
     @Test
@@ -122,7 +120,7 @@ public class MirrorRepositoryHookTest {
         GitScm gitScm = mock(GitScm.class);
         when(gitScm.getCommandBuilderFactory()).thenThrow(new RuntimeException("Intentional unit test exception"));
         MirrorRepositoryHook hook = new MirrorRepositoryHook(gitScm, mock(I18nService.class), executor,
-                passwordEncryptor, settingsReflectionHelper, pluginSettingsFactory);
+                passwordEncryptor, settingsReflectionHelper, pluginSettingsFactory, repositoryMetadataService);
         MirrorRepositoryHook.MirrorSettings ms = new MirrorRepositoryHook.MirrorSettings();
         ms.mirrorRepoUrl = mirrorRepoUrlHttp;
         ms.username = username;
@@ -267,4 +265,23 @@ public class MirrorRepositoryHookTest {
 
     }
 
+    private RepositoryHookContext buildContext(Repository repo) {
+        RepositoryHookContext context = mock(RepositoryHookContext.class);
+        Settings settings = defaultSettings();
+        when(context.getSettings()).thenReturn(settings);
+        when(context.getRepository()).thenReturn(repo);
+        return context;
+    }
+
+    private Settings defaultSettings() {
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL, "");
+
+        Settings settings = mock(Settings.class);
+        when(settings.asMap()).thenReturn(map);
+        when(settings.getString(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL), eq(""))).thenReturn(mirrorRepoUrlHttp);
+        when(settings.getString(eq(MirrorRepositoryHook.SETTING_USERNAME), eq(""))).thenReturn(username);
+        when(settings.getString(eq(MirrorRepositoryHook.SETTING_PASSWORD), eq(""))).thenReturn(password);
+        return settings;
+    }
 }
