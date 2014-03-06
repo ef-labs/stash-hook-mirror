@@ -7,6 +7,7 @@ import com.atlassian.stash.hook.repository.RepositoryHookContext;
 import com.atlassian.stash.i18n.I18nService;
 import com.atlassian.stash.repository.RefChange;
 import com.atlassian.stash.repository.Repository;
+import com.atlassian.stash.repository.RepositoryMetadataService;
 import com.atlassian.stash.scm.CommandExitHandler;
 import com.atlassian.stash.scm.DefaultCommandExitHandler;
 import com.atlassian.stash.scm.git.GitScm;
@@ -46,6 +47,8 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     private final ScheduledExecutorService executor;
     private final PasswordEncryptor passwordEncryptor;
     private final SettingsReflectionHelper settingsReflectionHelper;
+    private final RepositoryMetadataService repositoryMetadataService;
+
     private static final Logger logger = LoggerFactory.getLogger(MirrorRepositoryHook.class);
 
     public MirrorRepositoryHook(
@@ -54,7 +57,8 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             ScheduledExecutorService executor,
             PasswordEncryptor passwordEncryptor,
             SettingsReflectionHelper settingsReflectionHelper,
-            PluginSettingsFactory pluginSettingsFactory
+            PluginSettingsFactory pluginSettingsFactory,
+            RepositoryMetadataService repositoryMetadataService
     ) {
         logger.debug("MirrorRepositoryHook: init started");
 
@@ -64,6 +68,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         this.executor = executor;
         this.passwordEncryptor = passwordEncryptor;
         this.settingsReflectionHelper = settingsReflectionHelper;
+        this.repositoryMetadataService = repositoryMetadataService;
 
         // Init password encryptor
         PluginSettings pluginSettings = pluginSettingsFactory.createSettingsForKey(PLUGIN_SETTINGS_KEY);
@@ -99,6 +104,9 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     }
 
     void runMirrorCommand(MirrorSettings settings, final Repository repository) {
+        if (repositoryMetadataService.isEmpty(repository)) {
+            return;
+        }
 
         try {
             final String password = passwordEncryptor.decrypt(settings.password);
