@@ -128,6 +128,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                                 .command("push")
                                 .argument("--prune") // this deletes locally deleted branches
                                 .argument(authenticatedUrl)
+                                .argument("--force") // Canonical repository should always take precedence over mirror
                                 .argument("+refs/heads/*:refs/heads/*") // Only mirror heads
                                 .argument("+refs/tags/*:refs/tags/*") // and tags
                                 .errorHandler(passwordHandler)
