@@ -136,6 +136,13 @@
 
     <build>
         <plugins>
+          <!-- Workaround for AMPS-1112 -->
+          <plugin>
+            <groupId>com.atlassian.maven.plugins</groupId>
+            <artifactId>maven-amps-plugin</artifactId>
+            <version>${amps.version}</version>
+            <extensions>true</extensions>
+          </plugin>
             <plugin>
                 <groupId>com.atlassian.maven.plugins</groupId>
                 <artifactId>maven-stash-plugin</artifactId>
