@@ -6,7 +6,7 @@
 
     <groupId>com.englishtown</groupId>
     <artifactId>stash-hook-mirror</artifactId>
-    <version>1.8.0</version>
+    <version>1.9.0</version>
 
     <organization>
         <name>Englishtown</name>
@@ -29,8 +29,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <stash.version>2.6.0</stash.version>
         <stash.data.version>2.6.0</stash.data.version>
-        <amps.version>4.2.5</amps.version>
-        <plugin.testrunner.version>1.1.1</plugin.testrunner.version>
+        <amps.version>4.2.20</amps.version>
+        <plugin.testrunner.version>1.1.7</plugin.testrunner.version>
 
         <junit.version>4.10</junit.version>
         <common-lang.version>2.6</common-lang.version>
@@ -136,13 +136,13 @@
 
     <build>
         <plugins>
-          <!-- Workaround for AMPS-1112 -->
-          <plugin>
-            <groupId>com.atlassian.maven.plugins</groupId>
-            <artifactId>maven-amps-plugin</artifactId>
-            <version>${amps.version}</version>
-            <extensions>true</extensions>
-          </plugin>
+            <!-- Workaround for AMPS-1112 -->
+            <plugin>
+                <groupId>com.atlassian.maven.plugins</groupId>
+                <artifactId>maven-amps-plugin</artifactId>
+                <version>${amps.version}</version>
+                <extensions>true</extensions>
+            </plugin>
             <plugin>
                 <groupId>com.atlassian.maven.plugins</groupId>
                 <artifactId>maven-stash-plugin</artifactId>
