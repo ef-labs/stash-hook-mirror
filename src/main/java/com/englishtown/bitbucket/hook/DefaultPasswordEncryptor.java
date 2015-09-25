@@ -1,13 +1,13 @@
-package com.englishtown.stash.hook;
+package com.englishtown.bitbucket.hook;
 
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
-import org.apache.commons.codec.binary.Base64;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 /**
  * Service to encrypt/decrypt git user passwords
@@ -29,11 +29,11 @@ public class DefaultPasswordEncryptor implements PasswordEncryptor {
             if (value == null || value.toString().isEmpty()) {
                 KeyGenerator gen = KeyGenerator.getInstance("AES");
                 secretKey = gen.generateKey();
-                keyBase64 = Base64.encodeBase64String(secretKey.getEncoded());
+                keyBase64 = Base64.getEncoder().encodeToString(secretKey.getEncoded());
                 pluginSettings.put(SETTINGS_CRYPTO_KEY, keyBase64);
             } else {
                 keyBase64 = value.toString();
-                byte[] data = Base64.decodeBase64(keyBase64);
+                byte[] data = Base64.getDecoder().decode(keyBase64);
                 secretKey = new SecretKeySpec(data, 0, data.length, "AES");
             }
 
@@ -92,7 +92,7 @@ public class DefaultPasswordEncryptor implements PasswordEncryptor {
         }
         try {
             byte[] encryptedData = runCipher(password.getBytes("UTF-8"), true);
-            return ENCRYPTED_PREFIX + Base64.encodeBase64String(encryptedData);
+            return ENCRYPTED_PREFIX + Base64.getEncoder().encodeToString(encryptedData);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
@@ -104,7 +104,7 @@ public class DefaultPasswordEncryptor implements PasswordEncryptor {
             return password;
         }
         try {
-            byte[] encryptedData = Base64.decodeBase64(password.substring(ENCRYPTED_PREFIX.length()));
+            byte[] encryptedData = Base64.getDecoder().decode(password.substring(ENCRYPTED_PREFIX.length()));
             byte[] clearData = runCipher(encryptedData, false);
             return new String(clearData, "UTF-8");
         } catch (UnsupportedEncodingException e) {

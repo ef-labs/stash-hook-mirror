@@ -1,4 +1,4 @@
-{namespace com.englishtown.stash.hook.mirrorrepositoryhook}
+{namespace com.englishtown.bitbucket.hook.mirrorrepositoryhook}
 
 /**
  * @param  config
@@ -29,7 +29,7 @@
 
     // Call init method with subview callback
     <script>
-        require("et/hook/mirror").init(com.englishtown.stash.hook.mirrorrepositoryhook.subview, stash.buttons.button);
+        require("et/hook/mirror").init(com.englishtown.bitbucket.hook.mirrorrepositoryhook.subview, stash.buttons.button);
     </script>
 {/template}
 
@@ -44,10 +44,10 @@
             {param id: 'mirrorRepoUrl' + $index /}
             {param value: $config['mirrorRepoUrl' + $index] /}
             {param labelContent}
-                {stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.label', 'Mirror Repo URL')}
+                {stash_i18n('com.englishtown.bitbucket.hook.mirror.strings.mirrorRepoUrl.label', 'Mirror Repo URL')}
             {/param}
             {param isRequired: true /}
-            {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.description',
+            {param descriptionText: stash_i18n('com.englishtown.bitbucket.hook.mirror.strings.mirrorRepoUrl.description',
             'The GIT URL (ssh, git, http(s), file) to the remote mirrored repo') /}
             {param extraClasses: 'long et-mirror-repo' /}
             {param errorTexts: $errors ? $errors['mirrorRepoUrl' + $index] : null /}
@@ -56,9 +56,9 @@
             {param id: 'username' + $index /}
             {param value: $config['username' + $index] /}
             {param labelContent}
-                {stash_i18n('com.englishtown.stash.hook.mirror.strings.username.label', 'Username')}
+                {stash_i18n('com.englishtown.bitbucket.hook.mirror.strings.username.label', 'Username')}
             {/param}
-            {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.username.description',
+            {param descriptionText: stash_i18n('com.englishtown.bitbucket.hook.mirror.strings.username.description',
             'The username to use for pushing to the mirror over http(s)') /}
             {param extraClasses: 'long' /}
             {param errorTexts: $errors ? $errors['username' + $index] : null /}
@@ -67,9 +67,9 @@
             {param id: 'password' + $index /}
             {param value: $config['password' + $index] /}
             {param labelContent}
-                {stash_i18n('com.englishtown.stash.hook.mirror.strings.password.label', 'Password')}
+                {stash_i18n('com.englishtown.bitbucket.hook.mirror.strings.password.label', 'Password')}
             {/param}
-            {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.password.description',
+            {param descriptionText: stash_i18n('com.englishtown.bitbucket.hook.mirror.strings.password.description',
             'The password to use for pushing to the mirror over http(s)') /}
             {param extraClasses: 'long' /}
             {param errorTexts: $errors ? $errors['password' + $index] : null /}

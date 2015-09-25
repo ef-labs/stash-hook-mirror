@@ -1,4 +1,4 @@
-package com.englishtown.stash.hook;
+package com.englishtown.bitbucket.hook;
 
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 

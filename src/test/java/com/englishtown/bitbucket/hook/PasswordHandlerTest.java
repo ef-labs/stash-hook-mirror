@@ -1,6 +1,6 @@
-package com.englishtown.stash.hook;
+package com.englishtown.bitbucket.hook;
 
-import com.atlassian.stash.scm.CommandExitHandler;
+import com.atlassian.bitbucket.scm.CommandExitHandler;
 import org.junit.Before;
 import org.junit.Test;
 
