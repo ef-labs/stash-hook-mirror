@@ -5,6 +5,9 @@
         <description>${project.description}</description>
         <version>${project.version}</version>
         <vendor name="${project.organization.name}" url="${project.organization.url}"/>
+        <permissions>
+            <permission>execute_java</permission>
+        </permissions>
     </plugin-info>
 
     <!-- Components that are injected -->
@@ -21,14 +24,14 @@
     </component>
 
     <!-- add our i18n resource -->
-    <resource type="i18n" name="i18n" location="stash-hook-mirror"/>
+    <resource type="i18n" name="i18n" location="i18n/stash-hook-mirror"/>
 
     <repository-hook name="Mirror Repository Hook" i18n-name-key="mirror-repository-hook.name"
                      key="mirror-repository-hook" class="com.englishtown.bitbucket.hook.MirrorRepositoryHook">
         <description key="mirror-repository-hook.description">Mirror Hook</description>
-        <icon>/icons/mirror-icon.png</icon>
+        <icon>icons/mirror-icon.png</icon>
         <config-form name="Mirror Hook Config" key="mirror-repository-hook-config">
-            <view>com.englishtown.bitbucket.hook.mirrorrepositoryhook.view</view>
+            <view>com.englishtown.bitbucket.hook.view</view>
             <directory location="/static/"/>
         </config-form>
     </repository-hook>
