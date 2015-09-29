@@ -1,4 +1,4 @@
-{namespace com.englishtown.stash.hook.mirrorrepositoryhook}
+{namespace com.englishtown.bitbucket.hook}
 
 /**
  * @param  config
@@ -21,15 +21,15 @@
     {/foreach}
 
     // Button to add additional mirrors
-    {call stash.buttons.button}
+    {call aui.buttons.button}
         {param id: 'et-add-button' /}
-        {param buttonText: 'Add Mirror' /}
+        {param text: 'Add Mirror' /}
         {param extraAttributes: 'type=button' /}
     {/call}
 
     // Call init method with subview callback
     <script>
-        require("et/hook/mirror").init(com.englishtown.stash.hook.mirrorrepositoryhook.subview, stash.buttons.button);
+        require("et/hook/mirror").init(com.englishtown.bitbucket.hook.subview, aui.buttons.button);
     </script>
 {/template}
 
@@ -44,11 +44,10 @@
             {param id: 'mirrorRepoUrl' + $index /}
             {param value: $config['mirrorRepoUrl' + $index] /}
             {param labelContent}
-                {stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.label', 'Mirror Repo URL')}
+                {getText('mirror-repository-hook.mirrorRepoUrl.label')}
             {/param}
             {param isRequired: true /}
-            {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.mirrorRepoUrl.description',
-            'The GIT URL (ssh, git, http(s), file) to the remote mirrored repo') /}
+            {param descriptionText: getText('mirror-repository-hook.mirrorRepoUrl.description') /}
             {param extraClasses: 'long et-mirror-repo' /}
             {param errorTexts: $errors ? $errors['mirrorRepoUrl' + $index] : null /}
         {/call}
@@ -56,10 +55,9 @@
             {param id: 'username' + $index /}
             {param value: $config['username' + $index] /}
             {param labelContent}
-                {stash_i18n('com.englishtown.stash.hook.mirror.strings.username.label', 'Username')}
+                {getText('mirror-repository-hook.username.label')}
             {/param}
-            {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.username.description',
-            'The username to use for pushing to the mirror over http(s)') /}
+            {param descriptionText: getText('mirror-repository-hook.username.description') /}
             {param extraClasses: 'long' /}
             {param errorTexts: $errors ? $errors['username' + $index] : null /}
         {/call}
@@ -67,10 +65,9 @@
             {param id: 'password' + $index /}
             {param value: $config['password' + $index] /}
             {param labelContent}
-                {stash_i18n('com.englishtown.stash.hook.mirror.strings.password.label', 'Password')}
+                {getText('mirror-repository-hook.password.label')}
             {/param}
-            {param descriptionText: stash_i18n('com.englishtown.stash.hook.mirror.strings.password.description',
-            'The password to use for pushing to the mirror over http(s)') /}
+            {param descriptionText: getText('mirror-repository-hook.password.description') /}
             {param extraClasses: 'long' /}
             {param errorTexts: $errors ? $errors['password' + $index] : null /}
         {/call}

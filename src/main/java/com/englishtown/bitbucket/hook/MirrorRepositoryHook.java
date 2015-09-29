@@ -1,20 +1,21 @@
-package com.englishtown.stash.hook;
+package com.englishtown.bitbucket.hook;
 
+import com.atlassian.bitbucket.hook.repository.AsyncPostReceiveRepositoryHook;
+import com.atlassian.bitbucket.hook.repository.RepositoryHookContext;
+import com.atlassian.bitbucket.i18n.I18nService;
+import com.atlassian.bitbucket.repository.RefChange;
+import com.atlassian.bitbucket.repository.Repository;
+import com.atlassian.bitbucket.repository.RepositoryService;
+import com.atlassian.bitbucket.scm.CommandExitHandler;
+import com.atlassian.bitbucket.scm.DefaultCommandExitHandler;
+import com.atlassian.bitbucket.scm.ScmCommandBuilder;
+import com.atlassian.bitbucket.scm.ScmService;
+import com.atlassian.bitbucket.scm.git.command.GitScmCommandBuilder;
+import com.atlassian.bitbucket.setting.RepositorySettingsValidator;
+import com.atlassian.bitbucket.setting.Settings;
+import com.atlassian.bitbucket.setting.SettingsValidationErrors;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
-import com.atlassian.stash.hook.repository.AsyncPostReceiveRepositoryHook;
-import com.atlassian.stash.hook.repository.RepositoryHookContext;
-import com.atlassian.stash.i18n.I18nService;
-import com.atlassian.stash.repository.RefChange;
-import com.atlassian.stash.repository.Repository;
-import com.atlassian.stash.repository.RepositoryMetadataService;
-import com.atlassian.stash.scm.CommandExitHandler;
-import com.atlassian.stash.scm.DefaultCommandExitHandler;
-import com.atlassian.stash.scm.git.GitScm;
-import com.atlassian.stash.scm.git.GitScmCommandBuilder;
-import com.atlassian.stash.setting.RepositorySettingsValidator;
-import com.atlassian.stash.setting.Settings;
-import com.atlassian.stash.setting.SettingsValidationErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +24,6 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -42,33 +42,33 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     static final String SETTING_PASSWORD = "password";
     static final int MAX_ATTEMPTS = 5;
 
-    private final GitScm gitScm;
+    private final ScmService scmService;
     private final I18nService i18nService;
     private final ScheduledExecutorService executor;
     private final PasswordEncryptor passwordEncryptor;
     private final SettingsReflectionHelper settingsReflectionHelper;
-    private final RepositoryMetadataService repositoryMetadataService;
+    private final RepositoryService repositoryService;
 
     private static final Logger logger = LoggerFactory.getLogger(MirrorRepositoryHook.class);
 
     public MirrorRepositoryHook(
-            GitScm gitScm,
+            ScmService scmService,
             I18nService i18nService,
             ScheduledExecutorService executor,
             PasswordEncryptor passwordEncryptor,
             SettingsReflectionHelper settingsReflectionHelper,
             PluginSettingsFactory pluginSettingsFactory,
-            RepositoryMetadataService repositoryMetadataService
+            RepositoryService repositoryService
     ) {
         logger.debug("MirrorRepositoryHook: init started");
 
         // Set fields
-        this.gitScm = gitScm;
+        this.scmService = scmService;
         this.i18nService = i18nService;
         this.executor = executor;
         this.passwordEncryptor = passwordEncryptor;
         this.settingsReflectionHelper = settingsReflectionHelper;
-        this.repositoryMetadataService = repositoryMetadataService;
+        this.repositoryService = repositoryService;
 
         // Init password encryptor
         PluginSettings pluginSettings = pluginSettingsFactory.createSettingsForKey(PLUGIN_SETTINGS_KEY);
@@ -78,11 +78,11 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     }
 
     /**
-     * Calls the remote stash instance(s) to push the latest changes
-     * <p/>
+     * Calls the remote bitbucket instance(s) to push the latest changes
+     * <p>
      * Callback method that is called just after a push is completed (or a pull request accepted).
      * This hook executes <i>after</i> the processing of a push and will not block the user client.
-     * <p/>
+     * <p>
      * Despite being asynchronous, the user who initiated this change is still available from
      *
      * @param context    the context which the hook is being run with
@@ -104,7 +104,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     }
 
     void runMirrorCommand(MirrorSettings settings, final Repository repository) {
-        if (repositoryMetadataService.isEmpty(repository)) {
+        if (repositoryService.isEmpty(repository)) {
             return;
         }
 
@@ -112,14 +112,19 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             final String password = passwordEncryptor.decrypt(settings.password);
             final String authenticatedUrl = getAuthenticatedUrl(settings.mirrorRepoUrl, settings.username, password);
 
-            executor.submit(new Callable<Void>() {
+            executor.submit(new Runnable() {
 
                 int attempts = 0;
 
                 @Override
-                public Void call() throws Exception {
+                public void run() {
                     try {
-                        GitScmCommandBuilder builder = gitScm.getCommandBuilderFactory().builder(repository);
+                        ScmCommandBuilder obj = scmService.createBuilder(repository);
+                        if (!(obj instanceof GitScmCommandBuilder)) {
+                            logger.warn("Repository " + repository.getName() + " is not a git repo, cannot mirror");
+                            return;
+                        }
+                        GitScmCommandBuilder builder = (GitScmCommandBuilder) obj;
                         PasswordHandler passwordHandler = getPasswordHandler(builder, password);
 
                         // Call push command with the prune flag and refspecs for heads and tags
@@ -149,7 +154,6 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                         }
                     }
 
-                    return null;
                 }
             });
 
@@ -215,7 +219,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
 
     protected List<MirrorSettings> getMirrorSettings(Settings settings) {
 
-        List<MirrorSettings> results = new ArrayList<MirrorSettings>();
+        List<MirrorSettings> results = new ArrayList<>();
         Map<String, Object> allSettings = settings.asMap();
         int count = 0;
 

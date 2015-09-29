@@ -5,34 +5,33 @@
         <description>${project.description}</description>
         <version>${project.version}</version>
         <vendor name="${project.organization.name}" url="${project.organization.url}"/>
+        <permissions>
+            <permission>execute_java</permission>
+        </permissions>
     </plugin-info>
 
     <!-- Components that are injected -->
-    <component-import key="i18nService" interface="com.atlassian.stash.i18n.I18nService"/>
+    <component-import key="i18nService" interface="com.atlassian.bitbucket.i18n.I18nService"/>
     <component-import key="applicationProperties" interface="com.atlassian.sal.api.ApplicationProperties"/>
     <component-import key="pluginSettingsFactory" interface="com.atlassian.sal.api.pluginsettings.PluginSettingsFactory"/>
+    <component-import key="scmService" interface="com.atlassian.bitbucket.scm.ScmService"/>
 
-    <component-import key="gitScm" interface="com.atlassian.stash.scm.git.GitScm"/>
-    <component-import key="gitAgent" interface="com.atlassian.stash.scm.git.GitAgent"/>
-    <component-import key="gitScmConfig" interface="com.atlassian.stash.scm.git.GitScmConfig"/>
-    <component-import key="gitCommandBuilderFactory" interface="com.atlassian.stash.scm.git.GitCommandBuilderFactory"/>
-
-    <component key="passwordEncryptor" class="com.englishtown.stash.hook.DefaultPasswordEncryptor">
-        <interface>com.englishtown.stash.hook.PasswordEncryptor</interface>
+    <component key="passwordEncryptor" class="com.englishtown.bitbucket.hook.DefaultPasswordEncryptor">
+        <interface>com.englishtown.bitbucket.hook.PasswordEncryptor</interface>
     </component>
-    <component key="settingsReflectionHelper" class="com.englishtown.stash.hook.DefaultSettingsReflectionHelper">
-        <interface>com.englishtown.stash.hook.SettingsReflectionHelper</interface>
+    <component key="settingsReflectionHelper" class="com.englishtown.bitbucket.hook.DefaultSettingsReflectionHelper">
+        <interface>com.englishtown.bitbucket.hook.SettingsReflectionHelper</interface>
     </component>
 
     <!-- add our i18n resource -->
-    <resource type="i18n" name="i18n" location="stash-hook-mirror"/>
+    <resource type="i18n" name="i18n" location="i18n/stash-hook-mirror"/>
 
     <repository-hook name="Mirror Repository Hook" i18n-name-key="mirror-repository-hook.name"
-                     key="mirror-repository-hook" class="com.englishtown.stash.hook.MirrorRepositoryHook">
+                     key="mirror-repository-hook" class="com.englishtown.bitbucket.hook.MirrorRepositoryHook">
         <description key="mirror-repository-hook.description">Mirror Hook</description>
-        <icon>/icons/mirror-icon.png</icon>
+        <icon>icons/mirror-icon.png</icon>
         <config-form name="Mirror Hook Config" key="mirror-repository-hook-config">
-            <view>com.englishtown.stash.hook.mirrorrepositoryhook.view</view>
+            <view>com.englishtown.bitbucket.hook.view</view>
             <directory location="/static/"/>
         </config-form>
     </repository-hook>

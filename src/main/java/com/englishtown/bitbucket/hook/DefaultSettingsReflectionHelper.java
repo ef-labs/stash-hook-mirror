@@ -1,6 +1,6 @@
-package com.englishtown.stash.hook;
+package com.englishtown.bitbucket.hook;
 
-import com.atlassian.stash.setting.Settings;
+import com.atlassian.bitbucket.setting.Settings;
 
 import java.lang.reflect.Field;
 import java.util.Map;

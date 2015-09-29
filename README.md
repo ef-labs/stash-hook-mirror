@@ -1,8 +1,8 @@
 [![Build Status](https://travis-ci.org/englishtown/stash-hook-mirror.png)](https://travis-ci.org/englishtown/stash-hook-mirror)
 
-#Stash Repository Hook for Mirroring
+#Bitbucket Server Repository Hook for Mirroring
 
-The following is a plugin for Atlassian Stash to provide repository mirroring to a remote repository.
+The following is a plugin for Atlassian Bitbucket Server to provide repository mirroring to a remote repository.
 
 
 * `atlas-run`   -- installs this plugin into the product and starts it on localhost
