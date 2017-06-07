@@ -44,7 +44,7 @@ public class PasswordHandlerTest {
     @Test
     public void testOnCancel() throws Exception {
 
-        handler.onCancel(secretText, 0, secretText, null);
+        handler.onCancel(secretText, 0, secretText, new RuntimeException());
         verify(exitHandler).onCancel(eq(cleanedText), eq(0), eq(cleanedText), any(Throwable.class));
 
     }
@@ -52,7 +52,7 @@ public class PasswordHandlerTest {
     @Test
     public void testOnExit() throws Exception {
 
-        handler.onExit(secretText, 0, secretText, null);
+        handler.onExit(secretText, 0, secretText, new RuntimeException());
         verify(exitHandler).onExit(eq(cleanedText), eq(0), eq(cleanedText), any(Throwable.class));
 
     }
