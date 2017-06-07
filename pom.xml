@@ -135,14 +135,14 @@
     </pluginRepositories>
 
     <scm>
-        <connection>scm:git:ssh://git@github.com:englishtown/stash-hook-mirror.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:englishtown/stash-hook-mirror.git</developerConnection>
-        <url>scm:git:https://github.com/englishtown/stash-hook-mirror</url>
+        <connection>scm:git:ssh://git@github.com:ef-labs/stash-hook-mirror.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:ef-labs/stash-hook-mirror.git</developerConnection>
+        <url>scm:git:https://github.com/ef-labs/stash-hook-mirror</url>
     </scm>
 
     <issueManagement>
         <system>Github Issues</system>
-        <url>https://github.com/englishtown/stash-hook-mirror/issues</url>
+        <url>https://github.com/ef-labs/stash-hook-mirror/issues</url>
     </issueManagement>
 
 </project>
