@@ -129,9 +129,9 @@
     </pluginRepositories>
 
     <scm>
-        <connection>scm:git:ssh://git@github.com:ef-labs/stash-hook-mirror.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:ef-labs/stash-hook-mirror.git</developerConnection>
-        <url>scm:git:https://github.com/ef-labs/stash-hook-mirror</url>
+        <connection>scm:git:git@github.com:ef-labs/stash-hook-mirror.git</connection>
+        <developerConnection>scm:git:git@github.com:ef-labs/stash-hook-mirror.git</developerConnection>
+        <url>https://github.com/ef-labs/stash-hook-mirror</url>
     </scm>
 
     <issueManagement>
