@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.englishtown</groupId>
     <artifactId>stash-hook-mirror</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
 
     <organization>
         <name>Englishtown</name>
@@ -15,7 +14,7 @@
 
     <name>Repository Mirror Plugin for Bitbucket Server</name>
     <description>A Bitbucket Server repository hook for mirroring to one or more remote repositories.</description>
-    <url>https://github.com/englishtown/stash-hook-mirror</url>
+    <url>https://github.com/ef-labs/stash-hook-mirror</url>
     <inceptionYear>2013</inceptionYear>
     <licenses>
         <license>
@@ -28,11 +27,13 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <bitbucket.version>4.0.1</bitbucket.version>
-        <bitbucket.data.version>${bitbucket.version}</bitbucket.data.version>
-        <atlassian-sal-api.version>3.0.5</atlassian-sal-api.version>
-        <amps.version>6.1.0</amps.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
 
+        <bitbucket.version>5.0.2</bitbucket.version>
+        <bitbucket.data.version>${bitbucket.version}</bitbucket.data.version>
+        <atlassian-sal-api.version>3.1.0</atlassian-sal-api.version>
+        <amps.version>6.3.0</amps.version>
     </properties>
 
     <dependencyManagement>
@@ -101,14 +102,6 @@
                     </products>
                 </configuration>
             </plugin>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.2</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 
@@ -135,14 +128,15 @@
     </pluginRepositories>
 
     <scm>
-        <connection>scm:git:ssh://git@github.com:englishtown/stash-hook-mirror.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:englishtown/stash-hook-mirror.git</developerConnection>
-        <url>scm:git:https://github.com/englishtown/stash-hook-mirror</url>
-    </scm>
+        <connection>scm:git:git@github.com:ef-labs/stash-hook-mirror.git</connection>
+        <developerConnection>scm:git:git@github.com:ef-labs/stash-hook-mirror.git</developerConnection>
+        <url>https://github.com/ef-labs/stash-hook-mirror</url>
+      <tag>2.1.0</tag>
+  </scm>
 
     <issueManagement>
         <system>Github Issues</system>
-        <url>https://github.com/englishtown/stash-hook-mirror/issues</url>
+        <url>https://github.com/ef-labs/stash-hook-mirror/issues</url>
     </issueManagement>
 
 </project>

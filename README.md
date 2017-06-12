@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/englishtown/stash-hook-mirror.png)](https://travis-ci.org/englishtown/stash-hook-mirror)
+[![Build Status](https://travis-ci.org/ef-labs/stash-hook-mirror.png)](https://travis-ci.org/ef-labs/stash-hook-mirror)
 
 #Bitbucket Server Repository Hook for Mirroring
 
