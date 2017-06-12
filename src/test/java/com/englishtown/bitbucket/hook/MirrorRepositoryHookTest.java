@@ -91,7 +91,6 @@ public class MirrorRepositoryHookTest {
         when(passwordEncryptor.decrypt(anyString())).thenReturn(password);
 
         Repository repo = mock(Repository.class);
-        when(repo.getName()).thenReturn("test");
 
         hook.postReceive(buildContext(repo), new ArrayList<>());
         verifyExecutor();
@@ -123,19 +122,19 @@ public class MirrorRepositoryHookTest {
         Runnable runnable = argumentCaptor.getValue();
         runnable.run();
 
-        verify(executor, times(1)).schedule(argumentCaptor.capture(), anyInt(), any(TimeUnit.class));
+        verify(executor, times(1)).schedule(argumentCaptor.capture(), anyLong(), any(TimeUnit.class));
         runnable = argumentCaptor.getValue();
         runnable.run();
 
-        verify(executor, times(2)).schedule(argumentCaptor.capture(), anyInt(), any(TimeUnit.class));
+        verify(executor, times(2)).schedule(argumentCaptor.capture(), anyLong(), any(TimeUnit.class));
         runnable = argumentCaptor.getValue();
         runnable.run();
 
-        verify(executor, times(3)).schedule(argumentCaptor.capture(), anyInt(), any(TimeUnit.class));
+        verify(executor, times(3)).schedule(argumentCaptor.capture(), anyLong(), any(TimeUnit.class));
         runnable = argumentCaptor.getValue();
         runnable.run();
 
-        verify(executor, times(4)).schedule(argumentCaptor.capture(), anyInt(), any(TimeUnit.class));
+        verify(executor, times(4)).schedule(argumentCaptor.capture(), anyLong(), any(TimeUnit.class));
         runnable = argumentCaptor.getValue();
         runnable.run();
 
@@ -143,7 +142,7 @@ public class MirrorRepositoryHookTest {
         runnable.run();
         runnable.run();
         runnable.run();
-        verify(executor, times(4)).schedule(argumentCaptor.capture(), anyInt(), any(TimeUnit.class));
+        verify(executor, times(4)).schedule(argumentCaptor.capture(), anyLong(), any(TimeUnit.class));
 
     }
 
@@ -249,7 +248,6 @@ public class MirrorRepositoryHookTest {
         verify(errors, never()).addFormError(anyString());
         verify(errors, never()).addFieldError(anyString(), anyString());
 
-        when(passwordEncryptor.isEncrypted(anyString())).thenReturn(true);
         errors = mock(SettingsValidationErrors.class);
         hook.validate(settings, errors, repo);
         verify(errors, never()).addFormError(anyString());
