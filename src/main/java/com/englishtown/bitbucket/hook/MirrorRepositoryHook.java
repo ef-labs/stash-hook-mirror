@@ -136,6 +136,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                                 .argument("--force") // Canonical repository should always take precedence over mirror
                                 .argument("+refs/heads/*:refs/heads/*") // Only mirror heads
                                 .argument("+refs/tags/*:refs/tags/*") // and tags
+                                .argument("+refs/notes/*:refs/notes/*") // and notes
                                 .errorHandler(passwordHandler)
                                 .exitHandler(passwordHandler)
                                 .build(passwordHandler)
