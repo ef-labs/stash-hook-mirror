@@ -2,8 +2,7 @@ package com.englishtown.bitbucket.hook;
 
 import com.atlassian.bitbucket.hook.repository.RepositoryHookContext;
 import com.atlassian.bitbucket.i18n.I18nService;
-import com.atlassian.bitbucket.repository.Repository;
-import com.atlassian.bitbucket.repository.RepositoryService;
+import com.atlassian.bitbucket.repository.*;
 import com.atlassian.bitbucket.scm.CommandErrorHandler;
 import com.atlassian.bitbucket.scm.CommandExitHandler;
 import com.atlassian.bitbucket.scm.CommandOutputHandler;
@@ -23,9 +22,7 @@ import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -63,6 +60,7 @@ public class MirrorRepositoryHookTest {
     private final String username = "test-user";
     private final String password = "test-password";
     private final String repository = "https://test-user:test-password@bitbucket-mirror.englishtown.com/scm/test/test.git";
+    private final String branchesIncludePattern ="master";
 
     @Captor
     ArgumentCaptor<Runnable> argumentCaptor;
@@ -97,6 +95,44 @@ public class MirrorRepositoryHookTest {
     }
 
     @Test
+    public void testPostReceiveWithBranchesPatternUpdateOperation() throws Exception {
+        when(passwordEncryptor.decrypt(anyString())).thenReturn(password);
+
+        Repository repo = mock(Repository.class);
+        RefChange refChange = mock(RefChange.class);
+        MinimalRef ref = mock(MinimalRef.class);
+
+        List<RefChange> refChanges = new ArrayList<>();
+        refChanges.add(refChange);
+        when(refChange.getRef()).thenReturn(ref);
+        when(refChange.getType()).thenReturn(RefChangeType.UPDATE);
+        when(ref.getType()).thenReturn(StandardRefType.BRANCH);
+        when(ref.getDisplayId()).thenReturn("master");
+
+        hook.postReceive(buildContext(repo), refChanges);
+        verifyExecutorWithBranchesPatternUpdateOperation();
+    }
+
+    @Test
+    public void testPostReceiveWithBranchesPatternDeleteOperation() throws Exception {
+        when(passwordEncryptor.decrypt(anyString())).thenReturn(password);
+
+        Repository repo = mock(Repository.class);
+        RefChange refChange = mock(RefChange.class);
+        MinimalRef ref = mock(MinimalRef.class);
+
+        List<RefChange> refChanges = new ArrayList<>();
+        refChanges.add(refChange);
+        when(refChange.getRef()).thenReturn(ref);
+        when(refChange.getType()).thenReturn(RefChangeType.DELETE);
+        when(ref.getType()).thenReturn(StandardRefType.BRANCH);
+        when(ref.getDisplayId()).thenReturn("master");
+
+        hook.postReceive(buildContext(repo), refChanges);
+        verifyExecutorWithBranchesPatternDeleteOperation();
+    }
+
+    @Test
     public void testEmptyRepositoriesNotMirrored() {
         Repository repo = mock(Repository.class);
         when(repositoryService.isEmpty(repo)).thenReturn(true);
@@ -116,7 +152,7 @@ public class MirrorRepositoryHookTest {
         ms.mirrorRepoUrl = mirrorRepoUrlHttp;
         ms.username = username;
         ms.password = password;
-        hook.runMirrorCommand(ms, mock(Repository.class));
+        hook.runMirrorCommand(ms, mock(Repository.class), Collections.emptyList());
 
         verify(executor).submit(argumentCaptor.capture());
         Runnable runnable = argumentCaptor.getValue();
@@ -154,8 +190,41 @@ public class MirrorRepositoryHookTest {
 
         verify(builder, times(1)).command(eq("push"));
         verify(builder, times(1)).argument(eq("--prune"));
+        verify(builder, times(1)).argument(eq("--atomic"));
         verify(builder, times(1)).argument(eq(repository));
         verify(builder, times(1)).argument(eq("+refs/heads/*:refs/heads/*"));
+        verify(builder, times(1)).argument(eq("+refs/tags/*:refs/tags/*"));
+        verify(cmd, times(1)).call();
+
+    }
+
+    private void verifyExecutorWithBranchesPatternUpdateOperation() throws Exception {
+
+        verify(executor).submit(argumentCaptor.capture());
+        Runnable runnable = argumentCaptor.getValue();
+        runnable.run();
+
+        verify(builder, times(1)).command(eq("push"));
+        verify(builder, times(1)).argument(eq("--prune"));
+        verify(builder, times(1)).argument(eq("--atomic"));
+        verify(builder, times(1)).argument(eq(repository));
+        verify(builder, times(1)).argument(eq("+refs/heads/master:refs/heads/master"));
+        verify(builder, times(1)).argument(eq("+refs/tags/*:refs/tags/*"));
+        verify(cmd, times(1)).call();
+
+    }
+
+    private void verifyExecutorWithBranchesPatternDeleteOperation() throws Exception {
+
+        verify(executor).submit(argumentCaptor.capture());
+        Runnable runnable = argumentCaptor.getValue();
+        runnable.run();
+
+        verify(builder, times(1)).command(eq("push"));
+        verify(builder, times(1)).argument(eq("--prune"));
+        verify(builder, times(1)).argument(eq("--atomic"));
+        verify(builder, times(1)).argument(eq(repository));
+        verify(builder, times(1)).argument(eq("+:refs/heads/master"));
         verify(builder, times(1)).argument(eq("+refs/tags/*:refs/tags/*"));
         verify(cmd, times(1)).call();
 
@@ -201,6 +270,11 @@ public class MirrorRepositoryHookTest {
                 .thenReturn("")
                 .thenReturn(password);
 
+        when(settings.getString(eq(MirrorRepositoryHook.SETTING_BRANCHES_INCLUDE_PATTERN + "0"), eq("")))
+                .thenReturn("??")
+                .thenReturn("master")
+                .thenReturn("");
+
         Repository repo = mock(Repository.class);
         SettingsValidationErrors errors;
 
@@ -215,6 +289,7 @@ public class MirrorRepositoryHookTest {
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
+        verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_BRANCHES_INCLUDE_PATTERN + "0"), anyString());
 
         errors = mock(SettingsValidationErrors.class);
         hook.validate(settings, errors, repo);
@@ -272,6 +347,7 @@ public class MirrorRepositoryHookTest {
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL), eq(""))).thenReturn(mirrorRepoUrlHttp);
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_USERNAME), eq(""))).thenReturn(username);
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_PASSWORD), eq(""))).thenReturn(password);
+        when(settings.getString(eq(MirrorRepositoryHook.SETTING_BRANCHES_INCLUDE_PATTERN), eq(""))).thenReturn(branchesIncludePattern);
         return settings;
     }
 }

@@ -71,6 +71,16 @@
             {param extraClasses: 'long' /}
             {param errorTexts: $errors ? $errors['password' + $index] : null /}
         {/call}
+        {call aui.form.textField}
+            {param id: 'branchesIncludePattern' + $index /}
+            {param value: $config['branchesIncludePattern' + $index] /}
+            {param labelContent}
+                {getText('mirror-repository-hook.branchesIncludePattern.label')}
+            {/param}
+            {param descriptionText: getText('mirror-repository-hook.branchesIncludePattern.description') /}
+            {param extraClasses: 'long' /}
+            {param errorTexts: $errors ? $errors['branchesIncludePattern' + $index] : null /}
+        {/call}
     </fieldset>
 {/template}
 
