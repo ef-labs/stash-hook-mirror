@@ -3,14 +3,20 @@ package com.englishtown.bitbucket.hook;
 import com.atlassian.bitbucket.hook.repository.AsyncPostReceiveRepositoryHook;
 import com.atlassian.bitbucket.hook.repository.RepositoryHookContext;
 import com.atlassian.bitbucket.i18n.I18nService;
-import com.atlassian.bitbucket.repository.*;
-import com.atlassian.bitbucket.scm.*;
+import com.atlassian.bitbucket.repository.RefChange;
+import com.atlassian.bitbucket.repository.Repository;
+import com.atlassian.bitbucket.repository.RepositoryService;
+import com.atlassian.bitbucket.scm.CommandExitHandler;
+import com.atlassian.bitbucket.scm.DefaultCommandExitHandler;
+import com.atlassian.bitbucket.scm.ScmCommandBuilder;
+import com.atlassian.bitbucket.scm.ScmService;
 import com.atlassian.bitbucket.scm.git.command.GitScmCommandBuilder;
 import com.atlassian.bitbucket.setting.RepositorySettingsValidator;
 import com.atlassian.bitbucket.setting.Settings;
 import com.atlassian.bitbucket.setting.SettingsValidationErrors;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +27,6 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, RepositorySettingsValidator {
 
@@ -31,15 +35,20 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         String username;
         String password;
         String suffix;
-        String branchesIncludePattern;
+        String refspec;
+        boolean tags;
+        boolean notes;
     }
 
     public static final String PLUGIN_SETTINGS_KEY = "com.englishtown.stash.hook.mirror";
     static final String SETTING_MIRROR_REPO_URL = "mirrorRepoUrl";
     static final String SETTING_USERNAME = "username";
     static final String SETTING_PASSWORD = "password";
-    static final String SETTING_BRANCHES_INCLUDE_PATTERN = "branchesIncludePattern";
+    static final String SETTING_REFSPEC = "refspec";
+    static final String SETTING_TAGS = "tags";
+    static final String SETTING_NOTES = "notes";
     static final int MAX_ATTEMPTS = 5;
+    static final String DEFAULT_REFSPEC = "+refs/heads/*:refs/heads/*";
 
     private final ScmService scmService;
     private final I18nService i18nService;
@@ -97,12 +106,12 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         List<MirrorSettings> mirrorSettings = getMirrorSettings(context.getSettings());
 
         for (MirrorSettings settings : mirrorSettings) {
-            runMirrorCommand(settings, context.getRepository(), refChanges);
+            runMirrorCommand(settings, context.getRepository());
         }
 
     }
 
-    void runMirrorCommand(MirrorSettings settings, final Repository repository, Collection<RefChange> refChanges) {
+    void runMirrorCommand(MirrorSettings settings, final Repository repository) {
         if (repositoryService.isEmpty(repository)) {
             return;
         }
@@ -129,16 +138,30 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                         // Call push command with the prune flag and refspecs for heads and tags
                         // Do not use the mirror flag as pull-request refs are included
                         builder.command("push")
-                               .argument("--prune") // this deletes locally deleted branches
-                               .argument("--atomic") // use an atomic transaction to have a consistent state
-                               .argument(authenticatedUrl)
-                               .argument("--force") // Canonical repository should always take precedence over mirror
-                               .argument("+refs/tags/*:refs/tags/*") // and tags
-                               .argument("+refs/notes/*:refs/notes/*"); // and notes
-                        // add branch arguments
-                        addBranchArguments(settings, refChanges, builder);
+                                .argument("--prune") // this deletes locally deleted branches
+                                .argument("--atomic") // use an atomic transaction to have a consistent state
+                                .argument(authenticatedUrl)
+                                .argument("--force");
+
+                        // Add refspec args
+                        String refspecs = Strings.isNullOrEmpty(settings.refspec) ? DEFAULT_REFSPEC : settings.refspec;
+                        for (String refspec : refspecs.split("\\s|\\n")) {
+                            if (!Strings.isNullOrEmpty(refspec)) {
+                                builder.argument(refspec);
+                            }
+                        }
+
+                        // Add tags refspec
+                        if (settings.tags) {
+                            builder.argument("+refs/tags/*:refs/tags/*");
+                        }
+                        // Add notes refspec
+                        if (settings.notes) {
+                            builder.argument("+refs/notes/*:refs/notes/*");
+                        }
+
                         builder.errorHandler(passwordHandler)
-                               .exitHandler(passwordHandler);
+                                .exitHandler(passwordHandler);
 
                         String result = builder.build(passwordHandler).call();
 
@@ -195,7 +218,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             boolean ok = true;
             logger.debug("MirrorRepositoryHook: validate started.");
 
-            List<MirrorSettings> mirrorSettings = getMirrorSettings(settings);
+            List<MirrorSettings> mirrorSettings = getMirrorSettings(settings, false, false);
 
             for (MirrorSettings ms : mirrorSettings) {
                 if (!validate(ms, settings, errors)) {
@@ -207,7 +230,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             if (ok) {
                 updateSettings(mirrorSettings, settings);
                 for (MirrorSettings ms : mirrorSettings) {
-                    runMirrorCommand(ms, repository, Collections.EMPTY_LIST);
+                    runMirrorCommand(ms, repository);
                 }
             }
 
@@ -219,6 +242,10 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     }
 
     protected List<MirrorSettings> getMirrorSettings(Settings settings) {
+        return getMirrorSettings(settings, true, true);
+    }
+
+    protected List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes) {
 
         List<MirrorSettings> results = new ArrayList<>();
         Map<String, Object> allSettings = settings.asMap();
@@ -232,7 +259,9 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                 ms.mirrorRepoUrl = settings.getString(SETTING_MIRROR_REPO_URL + suffix, "");
                 ms.username = settings.getString(SETTING_USERNAME + suffix, "");
                 ms.password = settings.getString(SETTING_PASSWORD + suffix, "");
-                ms.branchesIncludePattern = (settings.getString(SETTING_BRANCHES_INCLUDE_PATTERN + suffix, ""));
+                ms.refspec = (settings.getString(SETTING_REFSPEC + suffix, ""));
+                ms.tags = (settings.getBoolean(SETTING_TAGS + suffix, defTags));
+                ms.notes = (settings.getBoolean(SETTING_NOTES + suffix, defNotes));
                 ms.suffix = String.valueOf(count++);
 
                 results.add(ms);
@@ -285,12 +314,10 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             ms.password = ms.username = "";
         }
 
-        if (!ms.branchesIncludePattern.isEmpty()) {
-            try {
-                Pattern.compile(ms.branchesIncludePattern);
-            } catch (PatternSyntaxException e) {
+        if (!ms.refspec.isEmpty()) {
+            if (!ms.refspec.contains(":")) {
                 result = false;
-                errors.addFieldError(SETTING_BRANCHES_INCLUDE_PATTERN + ms.suffix, "This is not a valid regular expression.");
+                errors.addFieldError(SETTING_REFSPEC + ms.suffix, "A refspec should be in the form <src>:<dest>.");
             }
         }
 
@@ -306,7 +333,9 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             values.put(SETTING_MIRROR_REPO_URL + ms.suffix, ms.mirrorRepoUrl);
             values.put(SETTING_USERNAME + ms.suffix, ms.username);
             values.put(SETTING_PASSWORD + ms.suffix, (ms.password.isEmpty() ? ms.password : passwordEncryptor.encrypt(ms.password)));
-            values.put(SETTING_BRANCHES_INCLUDE_PATTERN + ms.suffix, ms.branchesIncludePattern);
+            values.put(SETTING_REFSPEC + ms.suffix, ms.refspec);
+            values.put(SETTING_TAGS + ms.suffix, ms.tags);
+            values.put(SETTING_NOTES + ms.suffix, ms.notes);
         }
 
         // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection
@@ -330,37 +359,4 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         return new PasswordHandler(password, new DefaultCommandExitHandler(i18nService));
     }
 
-    private void addBranchArguments(MirrorSettings settings, Collection<RefChange> refChanges, CommandBuilder builder) {
-        Map<String, String> branchModifyArguments = new HashMap<>();
-        Map<String, String> branchDeleteArguments = new HashMap<>();
-
-        // if an empty list of RefChanges was provided we assume this was caused by triggering after a config change.
-        // same if no branch pattern was specified we sync all branches
-        if(refChanges.isEmpty() || settings.branchesIncludePattern.isEmpty()) {
-            builder.argument("+refs/heads/*:refs/heads/*");
-        } else {
-            for (RefChange refChange : refChanges) {
-                MinimalRef ref = refChange.getRef();
-                String displayId = ref.getDisplayId();
-                // branch operations
-                if (ref.getType().equals(StandardRefType.BRANCH)) {
-                    if (displayId.matches(settings.branchesIncludePattern)) {
-                        if (refChange.getType().equals(RefChangeType.DELETE) && !branchDeleteArguments.containsKey(displayId)) {
-                            branchDeleteArguments.put(displayId, "+:refs/heads/" + displayId);
-                        } else if ((refChange.getType().equals(RefChangeType.ADD) || refChange.getType().equals(RefChangeType.UPDATE)) && !branchModifyArguments.containsKey(displayId)) {
-                            branchModifyArguments.put(displayId, "+refs/heads/" + displayId + ":refs/heads/" + displayId);
-                        }
-                    }
-                }
-            }
-
-            for (String key : branchDeleteArguments.keySet()) {
-                builder.argument(branchDeleteArguments.get(key));
-            }
-
-            for (String key : branchModifyArguments.keySet()) {
-                builder.argument(branchModifyArguments.get(key));
-            }
-        }
-    }
 }

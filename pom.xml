@@ -33,7 +33,7 @@
         <bitbucket.version>5.0.2</bitbucket.version>
         <bitbucket.data.version>${bitbucket.version}</bitbucket.data.version>
         <atlassian-sal-api.version>3.1.0</atlassian-sal-api.version>
-        <amps.version>6.3.0</amps.version>
+        <amps.version>6.3.7</amps.version>
     </properties>
 
     <dependencyManagement>

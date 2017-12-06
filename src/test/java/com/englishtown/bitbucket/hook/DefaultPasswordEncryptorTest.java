@@ -2,10 +2,11 @@ package com.englishtown.bitbucket.hook;
 
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -13,10 +14,12 @@ import static org.mockito.Mockito.*;
 /**
  * DefaultPasswordEncryptor unit tests
  */
-@RunWith(MockitoJUnitRunner.class)
 public class DefaultPasswordEncryptorTest {
 
     private final static String CRYPTO_KEY = "m3ys5YexQc7irRlmJeCwAw==";
+
+    @Rule
+    public MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private PluginSettings pluginSettings;

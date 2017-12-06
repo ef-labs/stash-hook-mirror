@@ -12,10 +12,14 @@ The following is a plugin for Atlassian Bitbucket Server to provide repository m
                  - 'pi' reinstalls the plugin into the running product instance
 * `atlas-help`  -- prints description for all commands in the SDK
 
-Full documentation is always available at:
 
+Full documentation is always available at:
 https://developer.atlassian.com/display/DOCS/Introduction+to+the+Atlassian+Plugin+SDK
 
+
+Soy documentation is available here:
+https://bitbucket.org/atlassian/aui-adg/wiki/versions/product-version-matrix
+https://bitbucket.org/atlassian/aui/src/master/src/soy/form.soy
 
 
 The plugin can be found on the Atlassian Marketplace here:
