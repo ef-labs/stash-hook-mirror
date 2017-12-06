@@ -79,5 +79,22 @@
             {param fieldWidth: 'long' /}
             {param errorTexts: $errors ? $errors['refspec' + $index] : null /}
         {/call}
+        {call aui.form.checkboxField}
+            {param legendContent: '' /}
+            {param fields: [
+                [
+                    'id' : 'tags' + $index,
+                    'labelText': getText('mirror-repository-hook.tags.label'),
+                    'isChecked' : $config['tags' + $index] != false
+                ],
+                [
+                    'id' : 'notes' + $index,
+                    'labelText': getText('mirror-repository-hook.notes.label'),
+                    'isChecked' : $config['notes' + $index] != false
+                ]
+            ] /}
+            {param descriptionText: getText('mirror-repository-hook.tags-notes.description') /}
+        {/call}
+
     </fieldset>
 {/template}

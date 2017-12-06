@@ -36,6 +36,8 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         String password;
         String suffix;
         String refspec;
+        boolean tags;
+        boolean notes;
     }
 
     public static final String PLUGIN_SETTINGS_KEY = "com.englishtown.stash.hook.mirror";
@@ -43,6 +45,8 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     static final String SETTING_USERNAME = "username";
     static final String SETTING_PASSWORD = "password";
     static final String SETTING_REFSPEC = "refspec";
+    static final String SETTING_TAGS = "tags";
+    static final String SETTING_NOTES = "notes";
     static final int MAX_ATTEMPTS = 5;
     static final String DEFAULT_REFSPEC = "+refs/heads/*:refs/heads/*";
 
@@ -137,9 +141,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                                 .argument("--prune") // this deletes locally deleted branches
                                 .argument("--atomic") // use an atomic transaction to have a consistent state
                                 .argument(authenticatedUrl)
-                                .argument("--force") // Canonical repository should always take precedence over mirror
-                                .argument("+refs/tags/*:refs/tags/*") // and tags
-                                .argument("+refs/notes/*:refs/notes/*"); // and notes
+                                .argument("--force");
 
                         // Add refspec args
                         String refspecs = Strings.isNullOrEmpty(settings.refspec) ? DEFAULT_REFSPEC : settings.refspec;
@@ -147,6 +149,15 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                             if (!Strings.isNullOrEmpty(refspec)) {
                                 builder.argument(refspec);
                             }
+                        }
+
+                        // Add tags refspec
+                        if (settings.tags) {
+                            builder.argument("+refs/tags/*:refs/tags/*");
+                        }
+                        // Add notes refspec
+                        if (settings.notes) {
+                            builder.argument("+refs/notes/*:refs/notes/*");
                         }
 
                         builder.errorHandler(passwordHandler)
@@ -207,7 +218,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             boolean ok = true;
             logger.debug("MirrorRepositoryHook: validate started.");
 
-            List<MirrorSettings> mirrorSettings = getMirrorSettings(settings);
+            List<MirrorSettings> mirrorSettings = getMirrorSettings(settings, false, false);
 
             for (MirrorSettings ms : mirrorSettings) {
                 if (!validate(ms, settings, errors)) {
@@ -231,6 +242,10 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     }
 
     protected List<MirrorSettings> getMirrorSettings(Settings settings) {
+        return getMirrorSettings(settings, true, true);
+    }
+
+    protected List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes) {
 
         List<MirrorSettings> results = new ArrayList<>();
         Map<String, Object> allSettings = settings.asMap();
@@ -245,6 +260,8 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                 ms.username = settings.getString(SETTING_USERNAME + suffix, "");
                 ms.password = settings.getString(SETTING_PASSWORD + suffix, "");
                 ms.refspec = (settings.getString(SETTING_REFSPEC + suffix, ""));
+                ms.tags = (settings.getBoolean(SETTING_TAGS + suffix, defTags));
+                ms.notes = (settings.getBoolean(SETTING_NOTES + suffix, defNotes));
                 ms.suffix = String.valueOf(count++);
 
                 results.add(ms);
@@ -317,6 +334,8 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             values.put(SETTING_USERNAME + ms.suffix, ms.username);
             values.put(SETTING_PASSWORD + ms.suffix, (ms.password.isEmpty() ? ms.password : passwordEncryptor.encrypt(ms.password)));
             values.put(SETTING_REFSPEC + ms.suffix, ms.refspec);
+            values.put(SETTING_TAGS + ms.suffix, ms.tags);
+            values.put(SETTING_NOTES + ms.suffix, ms.notes);
         }
 
         // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection

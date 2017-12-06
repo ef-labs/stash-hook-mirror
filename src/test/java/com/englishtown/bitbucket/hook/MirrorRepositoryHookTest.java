@@ -161,10 +161,10 @@ public class MirrorRepositoryHookTest {
         verify(builder, times(1)).argument(eq("--atomic"));
         verify(builder, times(1)).argument(eq(repository));
         verify(builder, times(1)).argument(eq("--force"));
-        verify(builder, times(1)).argument(eq("+refs/tags/*:refs/tags/*"));
-        verify(builder, times(1)).argument(eq("+refs/notes/*:refs/notes/*"));
         verify(builder, times(1)).argument(eq("+refs/heads/master:refs/heads/master"));
         verify(builder, times(1)).argument(eq("+refs/heads/develop:refs/heads/develop"));
+        verify(builder, times(1)).argument(eq("+refs/tags/*:refs/tags/*"));
+        verify(builder, times(1)).argument(eq("+refs/notes/*:refs/notes/*"));
         verify(cmd, times(1)).call();
 
     }
@@ -287,6 +287,8 @@ public class MirrorRepositoryHookTest {
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_USERNAME), eq(""))).thenReturn(username);
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_PASSWORD), eq(""))).thenReturn(password);
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_REFSPEC), eq(""))).thenReturn(refspec);
+        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_TAGS), eq(true))).thenReturn(true);
+        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_NOTES), eq(true))).thenReturn(true);
         return settings;
     }
 }
