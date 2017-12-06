@@ -131,8 +131,19 @@
         <connection>scm:git:git@github.com:ef-labs/stash-hook-mirror.git</connection>
         <developerConnection>scm:git:git@github.com:ef-labs/stash-hook-mirror.git</developerConnection>
         <url>https://github.com/ef-labs/stash-hook-mirror</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>etown-nexus-snapshots</id>
+            <url>https://nexus-bos.englishtown.com/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>etown-nexus-releases</id>
+            <url>https://nexus-bos.englishtown.com/content/repositories/releases</url>
+        </repository>
+    </distributionManagement>
 
     <issueManagement>
         <system>Github Issues</system>
