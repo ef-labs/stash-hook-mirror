@@ -48,7 +48,7 @@
             {/param}
             {param isRequired: true /}
             {param descriptionText: getText('mirror-repository-hook.mirrorRepoUrl.description') /}
-            {param extraClasses: 'long et-mirror-repo' /}
+            {param extraClasses: 'et-mirror-repo' /}
             {param errorTexts: $errors ? $errors['mirrorRepoUrl' + $index] : null /}
         {/call}
         {call aui.form.textField}
@@ -58,7 +58,6 @@
                 {getText('mirror-repository-hook.username.label')}
             {/param}
             {param descriptionText: getText('mirror-repository-hook.username.description') /}
-            {param extraClasses: 'long' /}
             {param errorTexts: $errors ? $errors['username' + $index] : null /}
         {/call}
         {call aui.form.passwordField}
@@ -68,10 +67,34 @@
                 {getText('mirror-repository-hook.password.label')}
             {/param}
             {param descriptionText: getText('mirror-repository-hook.password.description') /}
-            {param extraClasses: 'long' /}
             {param errorTexts: $errors ? $errors['password' + $index] : null /}
         {/call}
+        {call aui.form.textareaField}
+            {param id: 'refspec' + $index /}
+            {param value: $config['refspec' + $index] /}
+            {param labelContent}
+                {getText('mirror-repository-hook.refspec.label')}
+            {/param}
+            {param descriptionText: getText('mirror-repository-hook.refspec.description') /}
+            {param fieldWidth: 'long' /}
+            {param errorTexts: $errors ? $errors['refspec' + $index] : null /}
+        {/call}
+        {call aui.form.checkboxField}
+            {param legendContent: '' /}
+            {param fields: [
+                [
+                    'id' : 'tags' + $index,
+                    'labelText': getText('mirror-repository-hook.tags.label'),
+                    'isChecked' : $config['tags' + $index] != false
+                ],
+                [
+                    'id' : 'notes' + $index,
+                    'labelText': getText('mirror-repository-hook.notes.label'),
+                    'isChecked' : $config['notes' + $index] != false
+                ]
+            ] /}
+            {param descriptionText: getText('mirror-repository-hook.tags-notes.description') /}
+        {/call}
+
     </fieldset>
 {/template}
-
-

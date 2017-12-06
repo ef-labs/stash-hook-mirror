@@ -5,7 +5,7 @@
 
     <groupId>com.englishtown</groupId>
     <artifactId>stash-hook-mirror</artifactId>
-    <version>2.1.0</version>
+    <version>2.2.0</version>
 
     <organization>
         <name>Englishtown</name>
@@ -33,7 +33,7 @@
         <bitbucket.version>5.0.2</bitbucket.version>
         <bitbucket.data.version>${bitbucket.version}</bitbucket.data.version>
         <atlassian-sal-api.version>3.1.0</atlassian-sal-api.version>
-        <amps.version>6.3.0</amps.version>
+        <amps.version>6.3.7</amps.version>
     </properties>
 
     <dependencyManagement>
@@ -131,8 +131,19 @@
         <connection>scm:git:git@github.com:ef-labs/stash-hook-mirror.git</connection>
         <developerConnection>scm:git:git@github.com:ef-labs/stash-hook-mirror.git</developerConnection>
         <url>https://github.com/ef-labs/stash-hook-mirror</url>
-      <tag>2.1.0</tag>
-  </scm>
+        <tag>2.2.0</tag>
+    </scm>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>etown-nexus-snapshots</id>
+            <url>https://nexus-bos.englishtown.com/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>etown-nexus-releases</id>
+            <url>https://nexus-bos.englishtown.com/content/repositories/releases</url>
+        </repository>
+    </distributionManagement>
 
     <issueManagement>
         <system>Github Issues</system>

@@ -15,13 +15,14 @@ import com.atlassian.bitbucket.setting.SettingsValidationErrors;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
-import org.mockito.Matchers;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,11 +36,13 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for {@link MirrorRepositoryHook}
  */
-@RunWith(MockitoJUnitRunner.class)
 public class MirrorRepositoryHookTest {
 
     private MirrorRepositoryHook hook;
     private GitScmCommandBuilder builder;
+
+    @Rule
+    public MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ScmService scmService;
@@ -63,6 +66,7 @@ public class MirrorRepositoryHookTest {
     private final String username = "test-user";
     private final String password = "test-password";
     private final String repository = "https://test-user:test-password@bitbucket-mirror.englishtown.com/scm/test/test.git";
+    private final String refspec = "+refs/heads/master:refs/heads/master +refs/heads/develop:refs/heads/develop";
 
     @Captor
     ArgumentCaptor<Runnable> argumentCaptor;
@@ -103,7 +107,7 @@ public class MirrorRepositoryHookTest {
 
         hook.postReceive(buildContext(repo), new ArrayList<>());
 
-        verify(executor, never()).submit(Matchers.<Runnable>any());
+        verify(executor, never()).submit(ArgumentMatchers.<Runnable>any());
     }
 
     @Test
@@ -154,9 +158,13 @@ public class MirrorRepositoryHookTest {
 
         verify(builder, times(1)).command(eq("push"));
         verify(builder, times(1)).argument(eq("--prune"));
+        verify(builder, times(1)).argument(eq("--atomic"));
         verify(builder, times(1)).argument(eq(repository));
-        verify(builder, times(1)).argument(eq("+refs/heads/*:refs/heads/*"));
+        verify(builder, times(1)).argument(eq("--force"));
+        verify(builder, times(1)).argument(eq("+refs/heads/master:refs/heads/master"));
+        verify(builder, times(1)).argument(eq("+refs/heads/develop:refs/heads/develop"));
         verify(builder, times(1)).argument(eq("+refs/tags/*:refs/tags/*"));
+        verify(builder, times(1)).argument(eq("+refs/notes/*:refs/notes/*"));
         verify(cmd, times(1)).call();
 
     }
@@ -201,6 +209,11 @@ public class MirrorRepositoryHookTest {
                 .thenReturn("")
                 .thenReturn(password);
 
+        when(settings.getString(eq(MirrorRepositoryHook.SETTING_REFSPEC + "0"), eq("")))
+                .thenReturn("??")
+                .thenReturn("+refs/heads/master:refs/heads/master")
+                .thenReturn("");
+
         Repository repo = mock(Repository.class);
         SettingsValidationErrors errors;
 
@@ -215,6 +228,7 @@ public class MirrorRepositoryHookTest {
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
+        verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_REFSPEC + "0"), anyString());
 
         errors = mock(SettingsValidationErrors.class);
         hook.validate(settings, errors, repo);
@@ -272,6 +286,9 @@ public class MirrorRepositoryHookTest {
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL), eq(""))).thenReturn(mirrorRepoUrlHttp);
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_USERNAME), eq(""))).thenReturn(username);
         when(settings.getString(eq(MirrorRepositoryHook.SETTING_PASSWORD), eq(""))).thenReturn(password);
+        when(settings.getString(eq(MirrorRepositoryHook.SETTING_REFSPEC), eq(""))).thenReturn(refspec);
+        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_TAGS), eq(true))).thenReturn(true);
+        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_NOTES), eq(true))).thenReturn(true);
         return settings;
     }
 }
