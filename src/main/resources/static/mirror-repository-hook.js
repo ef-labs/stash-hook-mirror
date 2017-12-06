@@ -6,7 +6,7 @@ define('et/hook/mirror', ['jquery', 'exports'], function ($, exports) {
                 var currIndex, index = 0, name, html;
 
                 // Determine the current index from the last password input
-                name = $('div.html-contents input:password').last().attr("name");
+                name = $('div.et-mirror-contents input:password').last().attr("name");
 
                 if (name && name.length >= 8) {
                     currIndex = parseInt(name.substring(8));
