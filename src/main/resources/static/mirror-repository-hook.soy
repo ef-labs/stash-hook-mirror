@@ -93,9 +93,13 @@
                     'id' : 'notes' + $index,
                     'labelText': getText('mirror-repository-hook.notes.label'),
                     'isChecked' : $config['notes' + $index] != false
+                ],
+                [
+                    'id' : 'atomic' + $index,
+                    'labelText': getText('mirror-repository-hook.atomic.label'),
+                    'isChecked' : $config['atomic' + $index] != false
                 ]
             ] /}
-            {param descriptionText: getText('mirror-repository-hook.tags-notes.description') /}
         {/call}
 
     </fieldset>

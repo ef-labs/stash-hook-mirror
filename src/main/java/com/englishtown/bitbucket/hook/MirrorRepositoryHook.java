@@ -38,6 +38,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
         String refspec;
         boolean tags;
         boolean notes;
+        boolean atomic;
     }
 
     public static final String PLUGIN_SETTINGS_KEY = "com.englishtown.stash.hook.mirror";
@@ -47,6 +48,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     static final String SETTING_REFSPEC = "refspec";
     static final String SETTING_TAGS = "tags";
     static final String SETTING_NOTES = "notes";
+    static final String SETTING_ATOMIC = "atomic";
     static final int MAX_ATTEMPTS = 5;
     static final String DEFAULT_REFSPEC = "+refs/heads/*:refs/heads/*";
 
@@ -139,9 +141,13 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                         // Do not use the mirror flag as pull-request refs are included
                         builder.command("push")
                                 .argument("--prune") // this deletes locally deleted branches
-                                .argument("--atomic") // use an atomic transaction to have a consistent state
                                 .argument(authenticatedUrl)
                                 .argument("--force");
+
+                        // Use an atomic transaction to have a consistent state
+                        if (settings.atomic) {
+                            builder.argument("--atomic");
+                        }
 
                         // Add refspec args
                         String refspecs = Strings.isNullOrEmpty(settings.refspec) ? DEFAULT_REFSPEC : settings.refspec;
@@ -218,7 +224,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             boolean ok = true;
             logger.debug("MirrorRepositoryHook: validate started.");
 
-            List<MirrorSettings> mirrorSettings = getMirrorSettings(settings, false, false);
+            List<MirrorSettings> mirrorSettings = getMirrorSettings(settings, false, false, false);
 
             for (MirrorSettings ms : mirrorSettings) {
                 if (!validate(ms, settings, errors)) {
@@ -242,10 +248,10 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
     }
 
     protected List<MirrorSettings> getMirrorSettings(Settings settings) {
-        return getMirrorSettings(settings, true, true);
+        return getMirrorSettings(settings, true, true, true);
     }
 
-    protected List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes) {
+    protected List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes, boolean defAtomic) {
 
         List<MirrorSettings> results = new ArrayList<>();
         Map<String, Object> allSettings = settings.asMap();
@@ -262,6 +268,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
                 ms.refspec = (settings.getString(SETTING_REFSPEC + suffix, ""));
                 ms.tags = (settings.getBoolean(SETTING_TAGS + suffix, defTags));
                 ms.notes = (settings.getBoolean(SETTING_NOTES + suffix, defNotes));
+                ms.atomic = (settings.getBoolean(SETTING_ATOMIC + suffix, defAtomic));
                 ms.suffix = String.valueOf(count++);
 
                 results.add(ms);
@@ -336,6 +343,7 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             values.put(SETTING_REFSPEC + ms.suffix, ms.refspec);
             values.put(SETTING_TAGS + ms.suffix, ms.tags);
             values.put(SETTING_NOTES + ms.suffix, ms.notes);
+            values.put(SETTING_ATOMIC + ms.suffix, ms.atomic);
         }
 
         // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection
