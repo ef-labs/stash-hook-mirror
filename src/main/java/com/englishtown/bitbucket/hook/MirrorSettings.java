@@ -12,4 +12,6 @@ class MirrorSettings implements Serializable {
     boolean tags;
     boolean notes;
     boolean atomic;
+    boolean prune;
+    boolean force;
 }

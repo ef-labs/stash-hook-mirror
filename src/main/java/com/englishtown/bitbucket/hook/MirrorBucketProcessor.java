@@ -88,11 +88,18 @@ public class MirrorBucketProcessor implements BucketProcessor<MirrorRequest> {
 
         // Call push command with the prune flag and refspecs for heads and tags
         // Do not use the mirror flag as pull-request refs are included
-        ScmCommandBuilder<?> builder = scmService.createBuilder(repository)
-                .command("push")
-                .argument("--prune") // this deletes locally deleted branches
-                .argument(authenticatedUrl)
-                .argument("--force");
+        ScmCommandBuilder<?> builder = scmService.createBuilder(repository).command("push");
+        
+        // this deletes locally deleted branches
+        if (settings.prune) {
+            builder.argument("--prune");
+        }
+
+        builder.argument(authenticatedUrl);
+
+        if (settings.force) {
+            builder.argument("--force");
+        }
 
         // Use an atomic transaction to have a consistent state
         if (settings.atomic) {
