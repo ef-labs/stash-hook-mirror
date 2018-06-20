@@ -1,6 +1,7 @@
 package com.englishtown.bitbucket.hook;
 
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
+import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -9,7 +10,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 /**
  * DefaultPasswordEncryptor unit tests
@@ -23,43 +24,22 @@ public class DefaultPasswordEncryptorTest {
 
     @Mock
     private PluginSettings pluginSettings;
+    @Mock
+    private PluginSettingsFactory pluginSettingsFactory;
 
     private DefaultPasswordEncryptor encryptor;
 
     @Before
-    public void setUp() throws Exception {
-
+    public void setUp() {
+        when(pluginSettingsFactory.createSettingsForKey(DefaultPasswordEncryptor.PLUGIN_SETTINGS_KEY))
+                .thenReturn(pluginSettings);
         when(pluginSettings.get(DefaultPasswordEncryptor.SETTINGS_CRYPTO_KEY)).thenReturn(CRYPTO_KEY);
 
-        encryptor = new DefaultPasswordEncryptor();
-        encryptor.init(pluginSettings);
-
+        encryptor = new DefaultPasswordEncryptor(pluginSettingsFactory);
     }
 
     @Test
-    public void testInit() throws Exception {
-
-        DefaultPasswordEncryptor encryptor = new DefaultPasswordEncryptor();
-        PluginSettings pluginSettings = mock(PluginSettings.class);
-        encryptor.init(pluginSettings);
-
-        verify(pluginSettings).put(eq(DefaultPasswordEncryptor.SETTINGS_CRYPTO_KEY), anyString());
-
-        when(pluginSettings.get(DefaultPasswordEncryptor.SETTINGS_CRYPTO_KEY)).thenReturn(CRYPTO_KEY);
-
-        encryptor.init(pluginSettings);
-
-        // Verify put hasn't been called again
-        verify(pluginSettings).put(eq(DefaultPasswordEncryptor.SETTINGS_CRYPTO_KEY), anyString());
-
-    }
-
-    @Test
-    public void testRunCipher() throws Exception {
-
-        DefaultPasswordEncryptor encryptor = new DefaultPasswordEncryptor();
-        encryptor.init(pluginSettings);
-
+    public void testRunCipher() {
         String clearText = "clear text";
         byte[] clearData = clearText.getBytes();
         byte[] encryptedData;
@@ -73,60 +53,33 @@ public class DefaultPasswordEncryptorTest {
 
         assertArrayEquals(clearData, resultData);
         assertEquals(clearText, resultText);
-
     }
 
     @Test
-    public void testIsEncrypted() throws Exception {
+    public void testIsEncrypted() {
+        assertFalse(encryptor.isEncrypted("clear-text-key"));
+        assertFalse(encryptor.isEncrypted(null));
+        assertFalse(encryptor.isEncrypted(""));
 
-        DefaultPasswordEncryptor encryptor = new DefaultPasswordEncryptor();
-        String password = "clear-text-key";
-        boolean result;
-
-        result = encryptor.isEncrypted(password);
-        assertFalse(result);
-
-        password = null;
-
-        result = encryptor.isEncrypted(password);
-        assertFalse(result);
-
-        password = "";
-
-        result = encryptor.isEncrypted(password);
-        assertFalse(result);
-
-        password = DefaultPasswordEncryptor.ENCRYPTED_PREFIX + "encrypted-key";
-
-        result = encryptor.isEncrypted(password);
-        assertTrue(result);
-
+        assertTrue(encryptor.isEncrypted(DefaultPasswordEncryptor.ENCRYPTED_PREFIX + "encrypted-key"));
     }
 
     @Test
-    public void testEncrypt() throws Exception {
+    public void testEncrypt() {
+        assertFalse(encryptor.isEncrypted("test"));
 
-        String password = "test";
-        String encrypted;
-        String clear;
-        String result;
-
-        assertFalse(encryptor.isEncrypted(password));
-
-        encrypted = encryptor.encrypt(password);
+        String encrypted = encryptor.encrypt("test");
         assertTrue(encryptor.isEncrypted(encrypted));
 
-        result = encryptor.encrypt(encrypted);
-        assertEquals(encrypted, result);
+        String reencrypted = encryptor.encrypt(encrypted);
+        assertEquals(encrypted, reencrypted);
 
-        clear = encryptor.decrypt(encrypted);
-        assertEquals(password, clear);
+        String decrypted = encryptor.decrypt(encrypted);
+        assertEquals("test", decrypted);
 
-        assertFalse(encryptor.isEncrypted(clear));
+        assertFalse(encryptor.isEncrypted(decrypted));
 
-        result = encryptor.decrypt(clear);
-        assertEquals(clear, result);
-
+        String redecrypted = encryptor.decrypt(decrypted);
+        assertEquals(decrypted, redecrypted);
     }
-
 }
