@@ -30,7 +30,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for {@link MirrorRepositoryHook}
+ * Unit tests for {@link MirrorBucketProcessor}.
  */
 public class MirrorBucketProcessorTest {
 

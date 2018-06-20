@@ -4,6 +4,7 @@ import com.atlassian.bitbucket.concurrent.BucketedExecutor;
 import com.atlassian.bitbucket.concurrent.ConcurrencyService;
 import com.atlassian.bitbucket.hook.repository.PostRepositoryHookContext;
 import com.atlassian.bitbucket.hook.repository.RepositoryPushHookRequest;
+import com.atlassian.bitbucket.project.Project;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.scm.git.GitScm;
 import com.atlassian.bitbucket.scope.Scope;
@@ -20,8 +21,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.atlassian.bitbucket.mockito.MockitoUtils.returnArg;
@@ -31,7 +34,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for {@link MirrorRepositoryHook}
+ * Unit tests for {@link MirrorRepositoryHook}.
  */
 public class MirrorRepositoryHookTest {
 
@@ -72,7 +75,7 @@ public class MirrorRepositoryHookTest {
     }
 
     @Test
-    public void testPostReceive() {
+    public void testPostUpdate() {
         when(passwordEncryptor.decrypt(anyString())).thenReturn(password);
 
         Repository repo = mock(Repository.class);
@@ -87,6 +90,32 @@ public class MirrorRepositoryHookTest {
 
         MirrorRequest request = requestCaptor.getValue();
         assertEquals(1, request.getRepositoryId());
+    }
+
+    @Test
+    public void testPostUpdateForHgRepository() {
+        Repository repo = mock(Repository.class);
+        when(repo.getScmId()).thenReturn("hg");
+
+        hook.postUpdate(buildContext(), new RepositoryPushHookRequest.Builder(repo).build());
+
+        verifyZeroInteractions(bucketedExecutor);
+    }
+
+    @Test
+    public void testPostUpdateUnconfigured() {
+        Repository repo = mock(Repository.class);
+        when(repo.getScmId()).thenReturn(GitScm.ID);
+
+        Settings settings = mock(Settings.class);
+        when(settings.asMap()).thenReturn(Collections.emptyMap());
+
+        PostRepositoryHookContext context = mock(PostRepositoryHookContext.class);
+        when(context.getSettings()).thenReturn(settings);
+
+        hook.postUpdate(context, new RepositoryPushHookRequest.Builder(repo).build());
+
+        verifyZeroInteractions(bucketedExecutor);
     }
 
     @Test
@@ -178,7 +207,27 @@ public class MirrorRepositoryHookTest {
         hook.validate(settings, errors, scope);
         verify(errors, never()).addFormError(anyString());
         verify(errors, never()).addFieldError(anyString(), anyString());
+    }
 
+    @Test
+    public void testValidateForGlobal() {
+        SettingsValidationErrors errors = mock(SettingsValidationErrors.class);
+        Settings settings = mock(Settings.class);
+
+        hook.validate(settings, errors, Scopes.global());
+
+        verifyZeroInteractions(bucketedExecutor, errors, settings);
+    }
+
+    @Test
+    public void testValidateForProject() {
+        SettingsValidationErrors errors = mock(SettingsValidationErrors.class);
+        Project project = mock(Project.class);
+        Settings settings = mock(Settings.class);
+
+        hook.validate(settings, errors, Scopes.project(project));
+
+        verifyZeroInteractions(bucketedExecutor, errors, settings);
     }
 
     private PostRepositoryHookContext buildContext() {

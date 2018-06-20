@@ -6,7 +6,7 @@ import com.atlassian.bitbucket.concurrent.ConcurrencyPolicy;
 import com.atlassian.bitbucket.concurrent.ConcurrencyService;
 import com.atlassian.bitbucket.hook.repository.PostRepositoryHook;
 import com.atlassian.bitbucket.hook.repository.PostRepositoryHookContext;
-import com.atlassian.bitbucket.hook.repository.RepositoryPushHookRequest;
+import com.atlassian.bitbucket.hook.repository.RepositoryHookRequest;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.scm.git.GitScm;
 import com.atlassian.bitbucket.scope.RepositoryScope;
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryPushHookRequest>, SettingsValidator {
+public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRequest>, SettingsValidator {
 
     static final String PROP_PREFIX = "plugin.com.englishtown.stash-hook-mirror.push.";
     static final String PROP_ATTEMPTS = PROP_PREFIX + "attempts";
@@ -73,19 +73,23 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryPushHo
      * Schedules pushes to apply the latest changes to any configured mirrors.
      *
      * @param context provides any settings which have been configured for the hook
-     * @param request describes the push
+     * @param request describes the repository and refs which were updated
      */
     @Override
-    public void postUpdate(@Nonnull PostRepositoryHookContext context,
-                           @Nonnull RepositoryPushHookRequest request) {
+    public void postUpdate(@Nonnull PostRepositoryHookContext context, @Nonnull RepositoryHookRequest request) {
         Repository repository = request.getRepository();
         if (!GitScm.ID.equalsIgnoreCase(repository.getScmId())) {
             return;
         }
 
-        logger.debug("{}: MirrorRepositoryHook: postReceive started.", repository);
-        getMirrorSettings(context.getSettings())
-                .forEach(settings -> pushExecutor.schedule(new MirrorRequest(repository, settings), 5L, TimeUnit.SECONDS));
+        List<MirrorSettings> mirrorSettings = getMirrorSettings(context.getSettings());
+        if (mirrorSettings.isEmpty()) {
+            logger.debug("{}: Mirroring is not configured", repository);
+        } else {
+            logger.debug("{}: Scheduling pushes for {} remote(s) after {}",
+                    repository, mirrorSettings.size(), request.getTrigger());
+            schedulePushes(repository, mirrorSettings);
+        }
     }
 
     /**
@@ -122,7 +126,7 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryPushHo
             // If no errors, run the mirror command
             if (ok) {
                 updateSettings(mirrorSettings, settings);
-                mirrorSettings.forEach(ms -> pushExecutor.schedule(new MirrorRequest(repository, ms), 5L, TimeUnit.SECONDS));
+                schedulePushes(repository, mirrorSettings);
             }
         } catch (Exception e) {
             logger.error("Error running MirrorRepositoryHook validate.", e);
@@ -158,6 +162,10 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryPushHo
         }
 
         return results;
+    }
+
+    private void schedulePushes(Repository repository, List<MirrorSettings> list) {
+        list.forEach(settings -> pushExecutor.schedule(new MirrorRequest(repository, settings), 5L, TimeUnit.SECONDS));
     }
 
     private boolean validate(MirrorSettings ms, SettingsValidationErrors errors) {
