@@ -1,6 +1,9 @@
 package com.englishtown.bitbucket.hook;
 
-import com.atlassian.bitbucket.hook.repository.RepositoryHookContext;
+import com.atlassian.bitbucket.hook.repository.PostRepositoryHookContext;
+import com.atlassian.bitbucket.hook.repository.RepositoryHookRequest;
+import com.atlassian.bitbucket.hook.repository.RepositoryHookTrigger;
+import com.atlassian.bitbucket.hook.repository.StandardRepositoryHookTrigger;
 import com.atlassian.bitbucket.i18n.I18nService;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.repository.RepositoryService;
@@ -10,6 +13,7 @@ import com.atlassian.bitbucket.scm.CommandOutputHandler;
 import com.atlassian.bitbucket.scm.ScmService;
 import com.atlassian.bitbucket.scm.git.command.GitCommand;
 import com.atlassian.bitbucket.scm.git.command.GitScmCommandBuilder;
+import com.atlassian.bitbucket.scope.Scope;
 import com.atlassian.bitbucket.setting.Settings;
 import com.atlassian.bitbucket.setting.SettingsValidationErrors;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
@@ -24,7 +28,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
@@ -96,8 +99,17 @@ public class MirrorRepositoryHookTest {
 
         Repository repo = mock(Repository.class);
 
-        hook.postReceive(buildContext(repo), new ArrayList<>());
+        hook.postUpdate(buildContext(), buildRequest(StandardRepositoryHookTrigger.REPO_PUSH, repo));
         verifyExecutor();
+    }
+
+    @Test
+    public void testUnwantedEventsIgnored() {
+        Repository repo = mock(Repository.class);
+
+        hook.postUpdate(buildContext(), buildRequest(StandardRepositoryHookTrigger.BRANCH_CREATE, repo));
+
+        verify(executor, never()).submit(ArgumentMatchers.<Runnable>any());
     }
 
     @Test
@@ -105,7 +117,7 @@ public class MirrorRepositoryHookTest {
         Repository repo = mock(Repository.class);
         when(repositoryService.isEmpty(repo)).thenReturn(true);
 
-        hook.postReceive(buildContext(repo), new ArrayList<>());
+        hook.postUpdate(buildContext(), buildRequest(StandardRepositoryHookTrigger.REPO_PUSH, repo));
 
         verify(executor, never()).submit(ArgumentMatchers.<Runnable>any());
     }
@@ -214,16 +226,17 @@ public class MirrorRepositoryHookTest {
                 .thenReturn("+refs/heads/master:refs/heads/master")
                 .thenReturn("");
 
-        Repository repo = mock(Repository.class);
+        Scope scope = mock(Scope.class);
+
         SettingsValidationErrors errors;
 
         errors = mock(SettingsValidationErrors.class);
-        hook.validate(settings, errors, repo);
+        hook.validate(settings, errors, scope);
         verify(errors, times(1)).addFormError(anyString());
         verify(errors, never()).addFieldError(anyString(), anyString());
 
         errors = mock(SettingsValidationErrors.class);
-        hook.validate(settings, errors, repo);
+        hook.validate(settings, errors, scope);
         verify(errors, never()).addFormError(anyString());
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
@@ -231,50 +244,56 @@ public class MirrorRepositoryHookTest {
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_REFSPEC + "0"), anyString());
 
         errors = mock(SettingsValidationErrors.class);
-        hook.validate(settings, errors, repo);
+        hook.validate(settings, errors, scope);
         verify(errors, never()).addFormError(anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
 
         errors = mock(SettingsValidationErrors.class);
-        hook.validate(settings, errors, repo);
+        hook.validate(settings, errors, scope);
         verify(errors, never()).addFormError(anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
         verify(errors, never()).addFieldError(anyString(), anyString());
 
         errors = mock(SettingsValidationErrors.class);
-        hook.validate(settings, errors, repo);
+        hook.validate(settings, errors, scope);
         verify(errors, never()).addFormError(anyString());
         verify(errors).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
 
         errors = mock(SettingsValidationErrors.class);
-        hook.validate(settings, errors, repo);
+        hook.validate(settings, errors, scope);
         verify(errors, never()).addFormError(anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_USERNAME + "0"), anyString());
         verify(errors, never()).addFieldError(eq(MirrorRepositoryHook.SETTING_PASSWORD + "0"), anyString());
 
         errors = mock(SettingsValidationErrors.class);
-        hook.validate(settings, errors, repo);
+        hook.validate(settings, errors, scope);
         verify(errors, never()).addFormError(anyString());
         verify(errors, never()).addFieldError(anyString(), anyString());
 
         errors = mock(SettingsValidationErrors.class);
-        hook.validate(settings, errors, repo);
+        hook.validate(settings, errors, scope);
         verify(errors, never()).addFormError(anyString());
         verify(errors, never()).addFieldError(anyString(), anyString());
 
     }
 
-    private RepositoryHookContext buildContext(Repository repo) {
-        RepositoryHookContext context = mock(RepositoryHookContext.class);
+    private PostRepositoryHookContext buildContext() {
+        PostRepositoryHookContext context = mock(PostRepositoryHookContext.class);
         Settings settings = defaultSettings();
         when(context.getSettings()).thenReturn(settings);
-        when(context.getRepository()).thenReturn(repo);
         return context;
+    }
+
+    private RepositoryHookRequest buildRequest(RepositoryHookTrigger trigger, Repository repo) {
+        RepositoryHookRequest request = mock(RepositoryHookRequest.class);
+        when(request.getTrigger()).thenReturn(trigger);
+        when(request.getRepository()).thenReturn(repo);
+        return request;
     }
 
     private Settings defaultSettings() {

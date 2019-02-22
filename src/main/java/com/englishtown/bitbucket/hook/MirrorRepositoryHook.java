@@ -1,9 +1,10 @@
 package com.englishtown.bitbucket.hook;
 
-import com.atlassian.bitbucket.hook.repository.AsyncPostReceiveRepositoryHook;
-import com.atlassian.bitbucket.hook.repository.RepositoryHookContext;
+import com.atlassian.bitbucket.hook.repository.PostRepositoryHook;
+import com.atlassian.bitbucket.hook.repository.PostRepositoryHookContext;
+import com.atlassian.bitbucket.hook.repository.RepositoryHookRequest;
+import com.atlassian.bitbucket.hook.repository.StandardRepositoryHookTrigger;
 import com.atlassian.bitbucket.i18n.I18nService;
-import com.atlassian.bitbucket.repository.RefChange;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.repository.RepositoryService;
 import com.atlassian.bitbucket.scm.CommandExitHandler;
@@ -11,9 +12,12 @@ import com.atlassian.bitbucket.scm.DefaultCommandExitHandler;
 import com.atlassian.bitbucket.scm.ScmCommandBuilder;
 import com.atlassian.bitbucket.scm.ScmService;
 import com.atlassian.bitbucket.scm.git.command.GitScmCommandBuilder;
-import com.atlassian.bitbucket.setting.RepositorySettingsValidator;
+import com.atlassian.bitbucket.scope.RepositoryScope;
+import com.atlassian.bitbucket.scope.Scope;
+import com.atlassian.bitbucket.scope.ScopeVisitor;
 import com.atlassian.bitbucket.setting.Settings;
 import com.atlassian.bitbucket.setting.SettingsValidationErrors;
+import com.atlassian.bitbucket.setting.SettingsValidator;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.google.common.base.Strings;
@@ -24,11 +28,14 @@ import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, RepositorySettingsValidator {
+public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRequest>, SettingsValidator {
 
     protected static class MirrorSettings {
         String mirrorRepoUrl;
@@ -96,21 +103,19 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
      * Despite being asynchronous, the user who initiated this change is still available from
      *
      * @param context    the context which the hook is being run with
-     * @param refChanges the refs that have just been updated
+     * @param request    the repository hook request
      */
     @Override
-    public void postReceive(
-            @Nonnull RepositoryHookContext context,
-            @Nonnull Collection<RefChange> refChanges) {
+    public void postUpdate(@Nonnull PostRepositoryHookContext context, @Nonnull RepositoryHookRequest request) {
+        if (request.getTrigger() == StandardRepositoryHookTrigger.REPO_PUSH) {
+            logger.debug("MirrorRepositoryHook: postReceive started.");
 
-        logger.debug("MirrorRepositoryHook: postReceive started.");
+            List<MirrorSettings> mirrorSettings = getMirrorSettings(context.getSettings());
 
-        List<MirrorSettings> mirrorSettings = getMirrorSettings(context.getSettings());
-
-        for (MirrorSettings settings : mirrorSettings) {
-            runMirrorCommand(settings, context.getRepository());
+            for (MirrorSettings settings : mirrorSettings) {
+                runMirrorCommand(settings, request.getRepository());
+            }
         }
-
     }
 
     void runMirrorCommand(MirrorSettings settings, final Repository repository) {
@@ -212,13 +217,13 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
      *
      * @param settings   to be validated
      * @param errors     callback for reporting validation errors.
-     * @param repository the context {@code Repository} the settings will be associated with
+     * @param scope      the scope the settings will be associated with
      */
     @Override
     public void validate(
             @Nonnull Settings settings,
             @Nonnull SettingsValidationErrors errors,
-            @Nonnull Repository repository) {
+            @Nonnull Scope scope) {
 
         try {
             boolean ok = true;
@@ -236,7 +241,13 @@ public class MirrorRepositoryHook implements AsyncPostReceiveRepositoryHook, Rep
             if (ok) {
                 updateSettings(mirrorSettings, settings);
                 for (MirrorSettings ms : mirrorSettings) {
-                    runMirrorCommand(ms, repository);
+                    scope.accept(new ScopeVisitor<Void>() {
+                        @Override
+                        public Void visit(@Nonnull RepositoryScope scope) {
+                            runMirrorCommand(ms, scope.getRepository());
+                            return null;
+                        }
+                    });
                 }
             }
 
