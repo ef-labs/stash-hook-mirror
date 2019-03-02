@@ -107,7 +107,7 @@ public class MirrorRepositoryHookTest {
     public void testUnwantedEventsIgnored() {
         Repository repo = mock(Repository.class);
 
-        hook.postUpdate(buildContext(), buildRequest(StandardRepositoryHookTrigger.BRANCH_CREATE, repo));
+        hook.postUpdate(buildContext(), buildRequest(StandardRepositoryHookTrigger.UNKNOWN, repo));
 
         verify(executor, never()).submit(ArgumentMatchers.<Runnable>any());
     }

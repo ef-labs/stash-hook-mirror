@@ -1,9 +1,6 @@
 package com.englishtown.bitbucket.hook;
 
-import com.atlassian.bitbucket.hook.repository.PostRepositoryHook;
-import com.atlassian.bitbucket.hook.repository.PostRepositoryHookContext;
-import com.atlassian.bitbucket.hook.repository.RepositoryHookRequest;
-import com.atlassian.bitbucket.hook.repository.StandardRepositoryHookTrigger;
+import com.atlassian.bitbucket.hook.repository.*;
 import com.atlassian.bitbucket.i18n.I18nService;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.repository.RepositoryService;
@@ -21,6 +18,7 @@ import com.atlassian.bitbucket.setting.SettingsValidator;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +56,14 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
     static final String SETTING_ATOMIC = "atomic";
     static final int MAX_ATTEMPTS = 5;
     static final String DEFAULT_REFSPEC = "+refs/heads/*:refs/heads/*";
+
+    /**
+     * Trigger types that don't cause a mirror to happen
+     */
+    private static ImmutableSet<RepositoryHookTrigger> TRIGGERS_TO_IGNORE =
+        ImmutableSet.of(
+            StandardRepositoryHookTrigger.UNKNOWN
+        );
 
     private final ScmService scmService;
     private final I18nService i18nService;
@@ -107,7 +113,7 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
      */
     @Override
     public void postUpdate(@Nonnull PostRepositoryHookContext context, @Nonnull RepositoryHookRequest request) {
-        if (request.getTrigger() == StandardRepositoryHookTrigger.REPO_PUSH) {
+        if (!TRIGGERS_TO_IGNORE.contains(request.getTrigger())) {
             logger.debug("MirrorRepositoryHook: postReceive started.");
 
             List<MirrorSettings> mirrorSettings = getMirrorSettings(context.getSettings());
