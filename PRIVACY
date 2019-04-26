@@ -1,0 +1,5 @@
+Data Security and Privacy Statement
+
+The Repository Mirror Plugin for Bitbucket app never stores any data outside of your Bitbucket instance, and data is only transmitted between the configured repository instances and your users' computers.
+
+The staff of EF Learning Labs have no way to see any of your Bitbucket data, and have no way to communicate with any app installs. The app never "phones home".
