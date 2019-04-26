@@ -81,7 +81,7 @@ public class MirrorBucketProcessor implements BucketProcessor<MirrorRequest> {
     }
 
     private void runMirrorCommand(MirrorSettings settings, Repository repository) {
-        log.warn("{}: Preparing to push changes to mirror", repository);
+        log.debug("{}: Preparing to push changes to mirror", repository);
 
         String password = passwordEncryptor.decrypt(settings.password);
         String authenticatedUrl = getAuthenticatedUrl(settings.mirrorRepoUrl, settings.username, password);
@@ -125,7 +125,7 @@ public class MirrorBucketProcessor implements BucketProcessor<MirrorRequest> {
         command.setTimeout(timeout);
 
         Object result = command.call();
-        log.warn("{}: Push completed with the following output:\n{}", repository, result);
+        log.info("{}: Push completed with the following output:\n{}", repository, result);
     }
 
     String getAuthenticatedUrl(String mirrorRepoUrl, String username, String password) {
