@@ -4,9 +4,7 @@ import com.atlassian.bitbucket.concurrent.BucketedExecutor;
 import com.atlassian.bitbucket.concurrent.BucketedExecutorSettings;
 import com.atlassian.bitbucket.concurrent.ConcurrencyPolicy;
 import com.atlassian.bitbucket.concurrent.ConcurrencyService;
-import com.atlassian.bitbucket.hook.repository.PostRepositoryHook;
-import com.atlassian.bitbucket.hook.repository.PostRepositoryHookContext;
-import com.atlassian.bitbucket.hook.repository.RepositoryHookRequest;
+import com.atlassian.bitbucket.hook.repository.*;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.scm.git.GitScm;
 import com.atlassian.bitbucket.scope.RepositoryScope;
@@ -16,15 +14,13 @@ import com.atlassian.bitbucket.server.ApplicationPropertiesService;
 import com.atlassian.bitbucket.setting.Settings;
 import com.atlassian.bitbucket.setting.SettingsValidationErrors;
 import com.atlassian.bitbucket.setting.SettingsValidator;
+import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRequest>, SettingsValidator {
@@ -39,6 +35,14 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
     static final String SETTING_TAGS = "tags";
     static final String SETTING_NOTES = "notes";
     static final String SETTING_ATOMIC = "atomic";
+
+    /**
+     * Trigger types that don't cause a mirror to happen
+     */
+    private static Set<RepositoryHookTrigger> TRIGGERS_TO_IGNORE =
+            ImmutableSet.of(
+                    StandardRepositoryHookTrigger.UNKNOWN
+            );
 
     private final PasswordEncryptor passwordEncryptor;
     private final SettingsReflectionHelper settingsReflectionHelper;
@@ -72,11 +76,16 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
     /**
      * Schedules pushes to apply the latest changes to any configured mirrors.
      *
-     * @param context provides any settings which have been configured for the hook
-     * @param request describes the repository and refs which were updated
+     * @param context provides hook settings and a way to obtain the commits added/removed
+     * @param request provides details about the refs that have been updated
      */
     @Override
     public void postUpdate(@Nonnull PostRepositoryHookContext context, @Nonnull RepositoryHookRequest request) {
+        if (TRIGGERS_TO_IGNORE.contains(request.getTrigger())) {
+            logger.trace("MirrorRepositoryHook: skipping trigger {}", request.getTrigger());
+            return;
+        }
+
         Repository repository = request.getRepository();
         if (!GitScm.ID.equalsIgnoreCase(repository.getScmId())) {
             return;
@@ -93,11 +102,11 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
     }
 
     /**
-     * Validates hook settings before they are persisted, and encrypts any user-supplied password.
+     * Validate the given {@code settings} before they are persisted., and encrypts any user-supplied password.
      *
      * @param settings to be validated
-     * @param errors   callback for reporting validation errors
-     * @param scope    the scope for which the hook has been configured
+     * @param errors   callback for reporting validation errors.
+     * @param scope    the context {@code Repository} the settings will be associated with
      */
     @Override
     public void validate(@Nonnull Settings settings, @Nonnull SettingsValidationErrors errors, @Nonnull Scope scope) {
