@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -31,9 +30,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <bitbucket.version>5.5.0</bitbucket.version>
-        <bitbucket.data.version>${bitbucket.version}</bitbucket.data.version>
-        <atlassian-sal-api.version>3.1.0</atlassian-sal-api.version>
-        <amps.version>6.3.7</amps.version>
+        <bitbucket.test.version>${bitbucket.version}</bitbucket.test.version>
+        <amps.version>6.3.17</amps.version>
     </properties>
 
     <dependencyManagement>
@@ -65,12 +63,22 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.atlassian.sal</groupId>
-            <artifactId>sal-api</artifactId>
-            <version>${atlassian-sal-api.version}</version>
+            <groupId>com.atlassian.bitbucket.server</groupId>
+            <artifactId>bitbucket-git-common</artifactId>
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.atlassian.sal</groupId>
+            <artifactId>sal-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.atlassian.bitbucket.server</groupId>
+            <artifactId>bitbucket-test-util</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -96,8 +104,8 @@
                         <product>
                             <id>bitbucket</id>
                             <instanceId>bitbucket</instanceId>
-                            <version>${bitbucket.version}</version>
-                            <dataVersion>${bitbucket.data.version}</dataVersion>
+                            <version>${bitbucket.test.version}</version>
+                            <dataVersion>${bitbucket.test.version}</dataVersion>
                         </product>
                     </products>
                 </configuration>

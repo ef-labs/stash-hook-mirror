@@ -1,33 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <atlassian-plugin key="${project.groupId}.${project.artifactId}" name="${project.name}" plugins-version="2">
     <plugin-info>
         <description>${project.description}</description>
         <version>${project.version}</version>
         <vendor name="${project.organization.name}" url="${project.organization.url}"/>
+        <param name="atlassian-data-center-compatible">true</param>
         <permissions>
             <permission>execute_java</permission>
         </permissions>
     </plugin-info>
 
     <!-- Components that are injected -->
+    <component-import key="applicationPropertiesService" interface="com.atlassian.bitbucket.server.ApplicationPropertiesService"/>
+    <component-import key="concurrencyService" interface="com.atlassian.bitbucket.concurrent.ConcurrencyService"/>
     <component-import key="i18nService" interface="com.atlassian.bitbucket.i18n.I18nService"/>
-    <component-import key="applicationProperties" interface="com.atlassian.sal.api.ApplicationProperties"/>
     <component-import key="pluginSettingsFactory" interface="com.atlassian.sal.api.pluginsettings.PluginSettingsFactory"/>
+    <component-import key="repositoryService" interface="com.atlassian.bitbucket.repository.RepositoryService"/>
     <component-import key="scmService" interface="com.atlassian.bitbucket.scm.ScmService"/>
 
-    <component key="passwordEncryptor" class="com.englishtown.bitbucket.hook.DefaultPasswordEncryptor">
-        <interface>com.englishtown.bitbucket.hook.PasswordEncryptor</interface>
-    </component>
-    <component key="settingsReflectionHelper" class="com.englishtown.bitbucket.hook.DefaultSettingsReflectionHelper">
-        <interface>com.englishtown.bitbucket.hook.SettingsReflectionHelper</interface>
-    </component>
+    <component key="mirrorRepositoryHook" class="com.englishtown.bitbucket.hook.MirrorRepositoryHook"/>
+    <component key="mirrorBucketProcessor" class="com.englishtown.bitbucket.hook.MirrorBucketProcessor"/>
+    <component key="passwordEncryptor" class="com.englishtown.bitbucket.hook.DefaultPasswordEncryptor"/>
+    <component key="settingsReflectionHelper" class="com.englishtown.bitbucket.hook.DefaultSettingsReflectionHelper"/>
 
     <!-- add our i18n resource -->
     <resource type="i18n" name="i18n" location="i18n/stash-hook-mirror"/>
 
     <repository-hook name="Mirror Repository Hook" i18n-name-key="mirror-repository-hook.name"
-                     key="mirror-repository-hook" class="com.englishtown.bitbucket.hook.MirrorRepositoryHook">
+                     key="mirror-repository-hook" class="bean:mirrorRepositoryHook"
+                     configurable="true">
         <description key="mirror-repository-hook.description">Mirror Hook</description>
         <icon>icons/mirror-icon.png</icon>
         <config-form name="Mirror Hook Config" key="mirror-repository-hook-config">
