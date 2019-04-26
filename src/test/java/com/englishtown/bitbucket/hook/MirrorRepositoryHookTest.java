@@ -2,8 +2,7 @@ package com.englishtown.bitbucket.hook;
 
 import com.atlassian.bitbucket.concurrent.BucketedExecutor;
 import com.atlassian.bitbucket.concurrent.ConcurrencyService;
-import com.atlassian.bitbucket.hook.repository.PostRepositoryHookContext;
-import com.atlassian.bitbucket.hook.repository.RepositoryPushHookRequest;
+import com.atlassian.bitbucket.hook.repository.*;
 import com.atlassian.bitbucket.project.Project;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.scm.git.GitScm;
@@ -24,7 +23,6 @@ import org.mockito.junit.MockitoRule;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.atlassian.bitbucket.mockito.MockitoUtils.returnArg;
@@ -116,6 +114,15 @@ public class MirrorRepositoryHookTest {
         hook.postUpdate(context, new RepositoryPushHookRequest.Builder(repo).build());
 
         verifyZeroInteractions(bucketedExecutor);
+    }
+
+    @Test
+    public void testUnwantedEventsIgnored() {
+        Repository repo = mock(Repository.class);
+
+        hook.postUpdate(buildContext(), buildRequest(StandardRepositoryHookTrigger.UNKNOWN, repo));
+
+        verify(bucketedExecutor, never()).submit(any());
     }
 
     @Test
@@ -237,6 +244,13 @@ public class MirrorRepositoryHookTest {
         when(context.getSettings()).thenReturn(settings);
 
         return context;
+    }
+
+    private RepositoryHookRequest buildRequest(RepositoryHookTrigger trigger, Repository repo) {
+        RepositoryHookRequest request = mock(RepositoryHookRequest.class);
+        when(request.getTrigger()).thenReturn(trigger);
+        when(request.getRepository()).thenReturn(repo);
+        return request;
     }
 
     private Settings defaultSettings() {
