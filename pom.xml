@@ -7,8 +7,8 @@
     <version>3.1.0-SNAPSHOT</version>
 
     <organization>
-        <name>Englishtown</name>
-        <url>http://www.englishtown.com/</url>
+        <name>EF Learning Labs</name>
+        <url>https://www.ef.com</url>
     </organization>
 
     <name>Repository Mirror Plugin for Bitbucket Server</name>
@@ -18,7 +18,7 @@
     <licenses>
         <license>
             <name>The MIT License</name>
-            <url>http://englishtown.mit-license.org/license.txt</url>
+            <url>https://ef-labs.mit-license.org</url>
         </license>
     </licenses>
     <packaging>atlassian-plugin</packaging>
