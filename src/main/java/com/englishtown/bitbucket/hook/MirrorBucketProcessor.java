@@ -9,6 +9,7 @@ import com.atlassian.bitbucket.scm.Command;
 import com.atlassian.bitbucket.scm.ScmCommandBuilder;
 import com.atlassian.bitbucket.scm.ScmService;
 import com.atlassian.bitbucket.scm.git.command.GitCommandExitHandler;
+import com.atlassian.bitbucket.scm.git.command.GitScmCommandBuilder;
 import com.atlassian.bitbucket.server.ApplicationPropertiesService;
 import com.atlassian.bitbucket.user.SecurityService;
 import com.google.common.base.Strings;
@@ -88,13 +89,22 @@ public class MirrorBucketProcessor implements BucketProcessor<MirrorRequest> {
 
         // Call push command with the prune flag and refspecs for heads and tags
         // Do not use the mirror flag as pull-request refs are included
-        ScmCommandBuilder<?> builder = scmService.createBuilder(repository)
+        ScmCommandBuilder<?> obj =  scmService.createBuilder(repository)
                 .command("push")
                 .argument("--prune") // this deletes locally deleted branches
                 .argument(authenticatedUrl)
                 .argument("--force");
 
-        // Use an atomic transaction to have a consistent state
+        // Use GitBuilder to allow git settings to be passed
+        GitScmCommandBuilder builder = (GitScmCommandBuilder) obj;
+
+        if (!settings.verifySsl) {
+            builder.withConfiguration("http.sslVerify", false);
+        }
+
+
+
+        // Use an atomicw transaction to have a consistent state
         if (settings.atomic) {
             builder.argument("--atomic");
         }
@@ -115,6 +125,8 @@ public class MirrorBucketProcessor implements BucketProcessor<MirrorRequest> {
         if (settings.notes) {
             builder.argument("+refs/notes/*:refs/notes/*");
         }
+
+
 
         PasswordHandler passwordHandler = new PasswordHandler(settings.password,
                 new GitCommandExitHandler(i18nService, repository));

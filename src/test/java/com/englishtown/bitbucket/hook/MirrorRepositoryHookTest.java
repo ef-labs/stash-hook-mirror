@@ -237,6 +237,7 @@ public class MirrorRepositoryHookTest {
         verifyZeroInteractions(bucketedExecutor, errors, settings);
     }
 
+
     private PostRepositoryHookContext buildContext() {
         Settings settings = defaultSettings();
 
@@ -266,6 +267,7 @@ public class MirrorRepositoryHookTest {
         when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_TAGS), eq(true))).thenReturn(true);
         when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_NOTES), eq(true))).thenReturn(true);
         when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_ATOMIC), eq(true))).thenReturn(true);
+        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_VERIFY_SSL), eq(true))).thenReturn(true);
 
         return settings;
     }
