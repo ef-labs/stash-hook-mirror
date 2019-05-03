@@ -98,6 +98,11 @@
                     'id' : 'atomic' + $index,
                     'labelText': getText('mirror-repository-hook.atomic.label'),
                     'isChecked' : $config['atomic' + $index] != false
+                 ],
+                 [
+                    'id' : 'verifySsl' + $index,
+                    'labelText': getText('mirror-repository-hook.verifySsl.label'),
+                    'isChecked' : $config['verifySsl' + $index] != false
                 ]
             ] /}
         {/call}
