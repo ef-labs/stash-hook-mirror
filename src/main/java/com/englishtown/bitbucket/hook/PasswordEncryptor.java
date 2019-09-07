@@ -1,18 +1,9 @@
 package com.englishtown.bitbucket.hook;
 
-import com.atlassian.sal.api.pluginsettings.PluginSettings;
-
 /**
  * Service to encrypt/decrypt git user passwords
  */
 public interface PasswordEncryptor {
-
-    /**
-     * Initialize the password encryptor with the atlassian plugin settings
-     *
-     * @param pluginSettings the plugin settings
-     */
-    void init(PluginSettings pluginSettings);
 
     /**
      * Checks whether the password is encrypted

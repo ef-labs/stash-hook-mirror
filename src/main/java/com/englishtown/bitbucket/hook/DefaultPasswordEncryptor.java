@@ -1,6 +1,7 @@
 package com.englishtown.bitbucket.hook;
 
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
+import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
@@ -16,11 +17,12 @@ public class DefaultPasswordEncryptor implements PasswordEncryptor {
 
     private SecretKey secretKey;
 
-    public static final String ENCRYPTED_PREFIX = "encrypted:";
-    public static final String SETTINGS_CRYPTO_KEY = "crypto.key";
+    static final String PLUGIN_SETTINGS_KEY = "com.englishtown.stash.hook.mirror";
+    static final String ENCRYPTED_PREFIX = "encrypted:";
+    static final String SETTINGS_CRYPTO_KEY = "crypto.key";
 
-    @Override
-    public void init(PluginSettings pluginSettings) {
+    public DefaultPasswordEncryptor(PluginSettingsFactory settingsFactory) {
+        PluginSettings pluginSettings = settingsFactory.createSettingsForKey(PLUGIN_SETTINGS_KEY);
 
         try {
             String keyBase64;
@@ -40,7 +42,6 @@ public class DefaultPasswordEncryptor implements PasswordEncryptor {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-
     }
 
     protected byte[] runCipher(byte[] data, boolean encrypt) {
