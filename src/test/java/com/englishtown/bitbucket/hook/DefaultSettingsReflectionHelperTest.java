@@ -48,7 +48,7 @@ public class DefaultSettingsReflectionHelperTest {
             return (String) values.get(key);
         }
 
-        @Nonnull
+        @Nullable
         @Override
         public String getString(@Nonnull String key, @Nonnull String defaultValue) {
             return null;

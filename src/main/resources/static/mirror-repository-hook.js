@@ -1,7 +1,7 @@
 define('et/hook/mirror', ['jquery', 'exports'], function ($, exports) {
 
     exports.init = function (createSubView, createButton) {
-        $('#et-add-button').click(function () {
+        $('#et-add-button').click(function() {
             try {
                 var currIndex, index = 0, name, html;
 
