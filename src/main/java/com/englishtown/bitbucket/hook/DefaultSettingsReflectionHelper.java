@@ -24,10 +24,7 @@ public class DefaultSettingsReflectionHelper implements SettingsReflectionHelper
             field.setAccessible(true);
             field.set(settings, values);
 
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException("Unable to encrypt the password.  Check for an updated version of the mirror " +
-                    "hook.", e);
-        } catch (IllegalAccessException e) {
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException("Unable to encrypt the password.  Check for an updated version of the mirror " +
                     "hook.", e);
         }

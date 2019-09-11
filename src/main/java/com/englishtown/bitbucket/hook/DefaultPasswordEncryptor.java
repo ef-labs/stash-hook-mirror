@@ -6,6 +6,7 @@ import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -51,9 +52,7 @@ public class DefaultPasswordEncryptor implements PasswordEncryptor {
             Cipher cipher = getCipher(mode);
             return cipher.doFinal(data);
 
-        } catch (IllegalBlockSizeException e) {
-            throw new RuntimeException(e);
-        } catch (BadPaddingException e) {
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
             throw new RuntimeException(e);
         }
     }
@@ -68,11 +67,7 @@ public class DefaultPasswordEncryptor implements PasswordEncryptor {
             cipher.init(mode, secretKey);
             return cipher;
 
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchPaddingException e) {
-            throw new RuntimeException(e);
-        } catch (InvalidKeyException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
             throw new RuntimeException(e);
         }
 
@@ -91,12 +86,8 @@ public class DefaultPasswordEncryptor implements PasswordEncryptor {
         if (isEncrypted(password)) {
             return password;
         }
-        try {
-            byte[] encryptedData = runCipher(password.getBytes("UTF-8"), true);
-            return ENCRYPTED_PREFIX + Base64.getEncoder().encodeToString(encryptedData);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        byte[] encryptedData = runCipher(password.getBytes(StandardCharsets.UTF_8), true);
+        return ENCRYPTED_PREFIX + Base64.getEncoder().encodeToString(encryptedData);
     }
 
     @Override
@@ -104,13 +95,9 @@ public class DefaultPasswordEncryptor implements PasswordEncryptor {
         if (!isEncrypted(password)) {
             return password;
         }
-        try {
-            byte[] encryptedData = Base64.getDecoder().decode(password.substring(ENCRYPTED_PREFIX.length()));
-            byte[] clearData = runCipher(encryptedData, false);
-            return new String(clearData, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        byte[] encryptedData = Base64.getDecoder().decode(password.substring(ENCRYPTED_PREFIX.length()));
+        byte[] clearData = runCipher(encryptedData, false);
+        return new String(clearData, StandardCharsets.UTF_8);
     }
 
 }

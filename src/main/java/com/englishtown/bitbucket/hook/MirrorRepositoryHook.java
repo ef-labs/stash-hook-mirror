@@ -63,7 +63,7 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
         int attempts = propertiesService.getPluginProperty(PROP_ATTEMPTS, 5);
         int threads = propertiesService.getPluginProperty(PROP_THREADS, 3);
 
-        pushExecutor = concurrencyService.getBucketedExecutor(getClass().getSimpleName(),
+        pushExecutor = concurrencyService.getBucketedExecutor(getClass().getCanonicalName(),
                 new BucketedExecutorSettings.Builder<>(MirrorRequest::toString, pushProcessor)
                         .batchSize(Integer.MAX_VALUE) // Coalesce all requests into a single push
                         .maxAttempts(attempts)
@@ -120,18 +120,15 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
         if (repository == null) {
             return;
         }
-
+        boolean ok = true;
+        logger.debug("MirrorRepositoryHook: validate started.");
         try {
-            boolean ok = true;
-            logger.debug("MirrorRepositoryHook: validate started.");
-
             List<MirrorSettings> mirrorSettings = getMirrorSettings(settings, false, false, false);
             for (MirrorSettings ms : mirrorSettings) {
                 if (!validate(ms, errors)) {
                     ok = false;
                 }
             }
-
             // If no errors, run the mirror command
             if (ok) {
                 updateSettings(mirrorSettings, settings);
@@ -155,7 +152,6 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
         for (String key : allSettings.keySet()) {
             if (key.startsWith(SETTING_MIRROR_REPO_URL)) {
                 String suffix = key.substring(SETTING_MIRROR_REPO_URL.length());
-
                 MirrorSettings ms = new MirrorSettings();
                 ms.mirrorRepoUrl = settings.getString(SETTING_MIRROR_REPO_URL + suffix, "");
                 ms.username = settings.getString(SETTING_USERNAME + suffix, "");
@@ -173,7 +169,7 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
         return results;
     }
 
-    private void schedulePushes(Repository repository, List<MirrorSettings> list) {
+    private void schedulePushes(final Repository repository, List<MirrorSettings> list) {
         list.forEach(settings -> pushExecutor.schedule(new MirrorRequest(repository, settings), 5L, TimeUnit.SECONDS));
     }
 
