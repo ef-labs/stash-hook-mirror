@@ -129,7 +129,6 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
                     ok = false;
                 }
             }
-            logger.info("First step of validating is done.");
             // If no errors, run the mirror command
             if (ok) {
                 updateSettings(mirrorSettings, settings);
