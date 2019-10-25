@@ -78,7 +78,9 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
     private BucketedExecutor<MirrorRequest> createPushExecutor(){
         logger.debug("MirrorRepositoryHook: initialize pushExecutor");
         int attempts = propertiesService.getPluginProperty(PROP_ATTEMPTS, 5);
+        logger.debug(PROP_ATTEMPTS+": "+attempts);
         int threads = propertiesService.getPluginProperty(PROP_THREADS, 3);
+        logger.debug(PROP_THREADS+": "+threads);
         return concurrencyService.getBucketedExecutor(getClass().getSimpleName(),
                 new BucketedExecutorSettings.Builder<>(MirrorRequest::toString, pushProcessor)
                         .batchSize(Integer.MAX_VALUE) // Coalesce all requests into a single push

@@ -24,3 +24,10 @@ https://bitbucket.org/atlassian/aui/src/master/src/soy/form.soy
 
 The plugin can be found on the Atlassian Marketplace here:
 https://marketplace.atlassian.com/plugins/com.englishtown.stash-hook-mirror
+
+Plugin properties in bitbucket.properties in file, located in the shared folder of server home directory:
+
+`plugin.com.englishtown.stash-hook-mirror.push.attempts=5
+plugin.com.englishtown.stash-hook-mirror.push.threads=3
+plugin.com.englishtown.stash-hook-mirror.push.timeout=120`
+

@@ -49,6 +49,7 @@ public class MirrorBucketProcessor implements BucketProcessor<MirrorRequest> {
         this.securityService = securityService;
 
         timeout = Duration.ofSeconds(propertiesService.getPluginProperty(PROP_TIMEOUT, 120L));
+        log.debug(PROP_TIMEOUT+": "+timeout.getSeconds());
     }
 
     @Override
