@@ -27,8 +27,8 @@ define('et/hook/mirror', ['jquery', 'exports'], function ($, exports) {
         function addRemoveButton() {
             // Select all fieldset groups that don't have a remove button
             var group = $(".et-mirror-group").not(":has(.et-remove-button)");
-            var html = createButton({text: 'Remove', extraClasses: 'et-remove-button add-hook-button', extraAttributes: 'type=button'});
-            group.find('.et-mirror-repo input').after(html);
+            var html = "<div>"+createButton({text: 'Remove', extraClasses: 'et-remove-button add-hook-button', extraAttributes: 'type=button'})+"</div>";
+            group.find('.et-mirror-repo textarea').after(html);
 
             group.find('.et-remove-button').click(function (e) {
                 $(e.currentTarget).parents('.et-mirror-group').remove();

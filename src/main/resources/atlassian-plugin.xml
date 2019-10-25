@@ -35,5 +35,9 @@
             <view>com.englishtown.bitbucket.hook.view</view>
             <directory location="/static/"/>
         </config-form>
+        <scopes>
+            <scope>project</scope>
+            <scope>repository</scope>
+        </scopes>
     </repository-hook>
 </atlassian-plugin>

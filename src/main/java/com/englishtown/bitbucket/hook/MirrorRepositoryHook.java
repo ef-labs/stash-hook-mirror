@@ -19,9 +19,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRequest>, SettingsValidator {
 
@@ -35,6 +38,9 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
     static final String SETTING_TAGS = "tags";
     static final String SETTING_NOTES = "notes";
     static final String SETTING_ATOMIC = "atomic";
+    private static final Pattern PLACEHOLDER_REGEX = Pattern.compile("\\$\\{([^}]+)\\}");
+    private static final Pattern OBJECT_REGEX = Pattern.compile("^([\\w]+)");
+    private static final Pattern METHOD_REGEX = Pattern.compile("\\.([\\w]+)\\(\\)");
 
     /**
      * Trigger types that don't cause a mirror to happen
@@ -44,9 +50,12 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
                     StandardRepositoryHookTrigger.UNKNOWN
             );
 
+    private final ConcurrencyService concurrencyService;
     private final PasswordEncryptor passwordEncryptor;
+    private final ApplicationPropertiesService propertiesService;
+    private final MirrorBucketProcessor pushProcessor;
     private final SettingsReflectionHelper settingsReflectionHelper;
-    private final BucketedExecutor<MirrorRequest> pushExecutor;
+    private BucketedExecutor<MirrorRequest> pushExecutor;
 
     private static final Logger logger = LoggerFactory.getLogger(MirrorRepositoryHook.class);
 
@@ -57,20 +66,26 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
                                 SettingsReflectionHelper settingsReflectionHelper) {
         logger.debug("MirrorRepositoryHook: init started");
 
+        this.concurrencyService = concurrencyService;
         this.passwordEncryptor = passwordEncryptor;
         this.settingsReflectionHelper = settingsReflectionHelper;
+        this.pushProcessor = pushProcessor;
+        this.propertiesService = propertiesService;
 
+        pushExecutor=createPushExecutor();
+        logger.debug("MirrorRepositoryHook: init completed");
+    }
+    private BucketedExecutor<MirrorRequest> createPushExecutor(){
+        logger.debug("MirrorRepositoryHook: initialize pushExecutor");
         int attempts = propertiesService.getPluginProperty(PROP_ATTEMPTS, 5);
         int threads = propertiesService.getPluginProperty(PROP_THREADS, 3);
-
-        pushExecutor = concurrencyService.getBucketedExecutor(getClass().getSimpleName(),
+        return concurrencyService.getBucketedExecutor(getClass().getSimpleName(),
                 new BucketedExecutorSettings.Builder<>(MirrorRequest::toString, pushProcessor)
                         .batchSize(Integer.MAX_VALUE) // Coalesce all requests into a single push
                         .maxAttempts(attempts)
                         .maxConcurrency(threads, ConcurrencyPolicy.PER_NODE)
                         .build());
 
-        logger.debug("MirrorRepositoryHook: init completed");
     }
 
     /**
@@ -173,8 +188,52 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
         return results;
     }
 
+    private MirrorSettings interpolateMirrorRepoUrl(Repository repository, MirrorSettings settings) {
+        Matcher p= PLACEHOLDER_REGEX.matcher(settings.mirrorRepoUrl);
+        StringBuffer stringBuffer = new StringBuffer();
+        while (p.find()){
+            Matcher o=OBJECT_REGEX.matcher(p.group(1));
+            Matcher m=METHOD_REGEX.matcher(p.group(1));
+            try {
+                if (!o.find()) {
+                    throw new NoSuchFieldException("Object not referenced");
+                }
+                Object instance =  null;
+                /* Cannot get method argument from reflection. Assign well known names */
+                switch (o.group(1)) {
+                    case "repository":
+                        instance=repository;
+                        break;
+                    default:
+                        throw new NoSuchFieldException("Unknown object "+o.group(1));
+                }
+                while (m.find()){
+                    instance = instance.getClass().getMethod(m.group(1)).invoke(instance);
+                }
+                p.appendReplacement(stringBuffer,Matcher.quoteReplacement(instance.toString()));
+            } catch (NoSuchFieldException | NoSuchMethodException e) {
+                logger.error("Failed to interpolate expression " + p.group(0) + " " + e);
+                p.appendReplacement(stringBuffer,Matcher.quoteReplacement(p.group(0)));
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                p.appendReplacement(stringBuffer,Matcher.quoteReplacement(p.group(0)));
+            }
+        }
+        p.appendTail(stringBuffer);
+        settings.mirrorRepoUrl=stringBuffer.toString();
+        return settings;
+    }
     private void schedulePushes(Repository repository, List<MirrorSettings> list) {
-        list.forEach(settings -> pushExecutor.schedule(new MirrorRequest(repository, settings), 5L, TimeUnit.SECONDS));
+        for(MirrorSettings settings : list) {
+            MirrorRequest request=new MirrorRequest(repository, interpolateMirrorRepoUrl(repository,settings));
+            try {
+                pushExecutor.schedule(request, 5L, TimeUnit.SECONDS);
+            } catch (ClassCastException e) {
+                /* Quick and dirty way to re-initialize pushExecutor after plugin update */
+                pushExecutor.shutdown();
+                pushExecutor=createPushExecutor();
+                pushExecutor.schedule(request, 5L, TimeUnit.SECONDS);
+            }
+        }
     }
 
     private boolean validate(MirrorSettings ms, SettingsValidationErrors errors) {

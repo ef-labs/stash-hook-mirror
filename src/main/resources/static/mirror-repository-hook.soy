@@ -42,7 +42,7 @@
  */
 {template .subview}
     <fieldset class="et-mirror-group">
-        {call aui.form.textField}
+        {call aui.form.textareaField}
             {param id: 'mirrorRepoUrl' + $index /}
             {param value: $config['mirrorRepoUrl' + $index] /}
             {param labelContent}
@@ -51,6 +51,7 @@
             {param isRequired: true /}
             {param descriptionText: getText('mirror-repository-hook.mirrorRepoUrl.description') /}
             {param extraClasses: 'et-mirror-repo' /}
+            {param fieldWidth: 'long' /}
             {param errorTexts: $errors ? $errors['mirrorRepoUrl' + $index] : null /}
         {/call}
         {call aui.form.textField}
