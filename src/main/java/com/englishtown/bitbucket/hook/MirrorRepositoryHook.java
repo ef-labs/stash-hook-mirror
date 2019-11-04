@@ -4,9 +4,15 @@ import com.atlassian.bitbucket.concurrent.BucketedExecutor;
 import com.atlassian.bitbucket.concurrent.BucketedExecutorSettings;
 import com.atlassian.bitbucket.concurrent.ConcurrencyPolicy;
 import com.atlassian.bitbucket.concurrent.ConcurrencyService;
+import com.atlassian.bitbucket.event.repository.RepositoryDeletedEvent;
+import com.atlassian.bitbucket.event.repository.RepositoryModifiedEvent;
 import com.atlassian.bitbucket.hook.repository.*;
+import com.atlassian.bitbucket.i18n.I18nService;
+import com.atlassian.bitbucket.project.Project;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.scm.git.GitScm;
+import com.atlassian.bitbucket.scm.git.command.GitCommandExitHandler;
+import com.atlassian.bitbucket.scope.ProjectScope;
 import com.atlassian.bitbucket.scope.RepositoryScope;
 import com.atlassian.bitbucket.scope.Scope;
 import com.atlassian.bitbucket.scope.ScopeVisitor;
@@ -14,6 +20,8 @@ import com.atlassian.bitbucket.server.ApplicationPropertiesService;
 import com.atlassian.bitbucket.setting.Settings;
 import com.atlassian.bitbucket.setting.SettingsValidationErrors;
 import com.atlassian.bitbucket.setting.SettingsValidator;
+import com.atlassian.event.api.EventListener;
+import com.atlassian.utils.process.StringOutputHandler;
 import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,9 +46,11 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
     static final String SETTING_TAGS = "tags";
     static final String SETTING_NOTES = "notes";
     static final String SETTING_ATOMIC = "atomic";
-    private static final Pattern PLACEHOLDER_REGEX = Pattern.compile("\\$\\{([^}]+)\\}");
-    private static final Pattern OBJECT_REGEX = Pattern.compile("^([\\w]+)");
-    private static final Pattern METHOD_REGEX = Pattern.compile("\\.([\\w]+)\\(\\)");
+    static final String SETTING_REST_API_URL = "restApiURL";
+    static final String SETTING_PRIVATE_TOKEN = "privateToken";
+    static final Pattern PLACEHOLDER_REGEX = Pattern.compile("\\$\\{([^}]+)\\}");
+    static final Pattern OBJECT_REGEX = Pattern.compile("^([\\w]+)");
+    static final Pattern METHOD_REGEX = Pattern.compile("\\.([\\w]+)\\(\\)");
 
     /**
      * Trigger types that don't cause a mirror to happen
@@ -51,36 +61,46 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
             );
 
     private final ConcurrencyService concurrencyService;
+    private final I18nService i18nService;
     private final PasswordEncryptor passwordEncryptor;
     private final ApplicationPropertiesService propertiesService;
     private final MirrorBucketProcessor pushProcessor;
+    private final MirrorRemoteAdmin mirrorRemoteAdmin;
+    private final RepositoryHookService repositoryHookService;
     private final SettingsReflectionHelper settingsReflectionHelper;
     private BucketedExecutor<MirrorRequest> pushExecutor;
 
     private static final Logger logger = LoggerFactory.getLogger(MirrorRepositoryHook.class);
 
     public MirrorRepositoryHook(ConcurrencyService concurrencyService,
+                                I18nService i18nService,
                                 PasswordEncryptor passwordEncryptor,
                                 ApplicationPropertiesService propertiesService,
                                 MirrorBucketProcessor pushProcessor,
+                                MirrorRemoteAdmin mirrorRemoteAdmin,
+                                RepositoryHookService repositoryHookService,
                                 SettingsReflectionHelper settingsReflectionHelper) {
         logger.debug("MirrorRepositoryHook: init started");
 
         this.concurrencyService = concurrencyService;
+        this.i18nService = i18nService;
         this.passwordEncryptor = passwordEncryptor;
-        this.settingsReflectionHelper = settingsReflectionHelper;
-        this.pushProcessor = pushProcessor;
         this.propertiesService = propertiesService;
+        this.pushProcessor = pushProcessor;
+        this.mirrorRemoteAdmin = mirrorRemoteAdmin;
+        this.repositoryHookService = repositoryHookService;
+        this.settingsReflectionHelper = settingsReflectionHelper;
 
-        pushExecutor=createPushExecutor();
+        pushExecutor = createPushExecutor();
         logger.debug("MirrorRepositoryHook: init completed");
     }
-    private BucketedExecutor<MirrorRequest> createPushExecutor(){
+
+    private BucketedExecutor<MirrorRequest> createPushExecutor() {
         logger.debug("MirrorRepositoryHook: initialize pushExecutor");
         int attempts = propertiesService.getPluginProperty(PROP_ATTEMPTS, 5);
-        logger.debug(PROP_ATTEMPTS+": "+attempts);
+        logger.debug(PROP_ATTEMPTS + ": " + attempts);
         int threads = propertiesService.getPluginProperty(PROP_THREADS, 3);
-        logger.debug(PROP_THREADS+": "+threads);
+        logger.debug(PROP_THREADS + ": " + threads);
         return concurrencyService.getBucketedExecutor(getClass().getSimpleName(),
                 new BucketedExecutorSettings.Builder<>(MirrorRequest::toString, pushProcessor)
                         .batchSize(Integer.MAX_VALUE) // Coalesce all requests into a single push
@@ -98,6 +118,7 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
      */
     @Override
     public void postUpdate(@Nonnull PostRepositoryHookContext context, @Nonnull RepositoryHookRequest request) {
+        logger.debug("postUpdate " + request.getRepository().getName());
         if (TRIGGERS_TO_IGNORE.contains(request.getTrigger())) {
             logger.trace("MirrorRepositoryHook: skipping trigger {}", request.getTrigger());
             return;
@@ -134,7 +155,14 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
                 return scope.getRepository();
             }
         });
-        if (repository == null) {
+        Project project = scope.accept(new ScopeVisitor<Project>() {
+
+            @Override
+            public Project visit(@Nonnull ProjectScope scope) {
+                return scope.getProject();
+            }
+        });
+        if (repository == null && project == null) {
             return;
         }
 
@@ -151,8 +179,11 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
 
             // If no errors, run the mirror command
             if (ok) {
+                logger.error("update settings");
                 updateSettings(mirrorSettings, settings);
-                schedulePushes(repository, mirrorSettings);
+                if(repository != null) {
+                    schedulePushes(repository, mirrorSettings);
+                }
             }
         } catch (Exception e) {
             logger.error("Error running MirrorRepositoryHook validate.", e);
@@ -160,11 +191,77 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
         }
     }
 
-    private List<MirrorSettings> getMirrorSettings(Settings settings) {
+    @EventListener
+    public void repositoryDeleted(RepositoryDeletedEvent repositoryDeletedEvent) {
+        logger.debug("Delete " + repositoryDeletedEvent.getRepository().getName());
+        deleteRepository(repositoryDeletedEvent.getRepository());
+    }
+
+    @EventListener
+    public void repositoryModified(RepositoryModifiedEvent repositoryModifiedEvent) {
+        logger.debug("Modify " + repositoryModifiedEvent.getRepository().getName());
+        if (repositoryModifiedEvent.getOldValue().getName().equals(repositoryModifiedEvent.getNewValue().getName())
+                && repositoryModifiedEvent.getOldValue().getProject().getKey().equals(repositoryModifiedEvent.getNewValue().getProject().getKey())) {
+            logger.debug("Repository project and name not changed. Nothing to mirror");
+            return;
+        }
+
+        List<MirrorSettings> newMirrorSettingsList = getMirrorSettings(getPluginSettings(repositoryModifiedEvent.getNewValue()));
+        for (MirrorSettings mirrorSettings : newMirrorSettingsList) {
+            interpolateMirrorRepoUrl(repositoryModifiedEvent.getNewValue(), mirrorSettings);
+            }
+
+        deleteRepository(repositoryModifiedEvent.getOldValue());
+        createRepositoryMirrors(repositoryModifiedEvent.getNewValue(),newMirrorSettingsList);
+    }
+
+    private void deleteRepository(Repository repository) {
+        Settings settings = getPluginSettings(repository);
+        List<MirrorSettings> oldMirrorSettingsList = getMirrorSettings(settings);
+        for (MirrorSettings mirrorSettings : oldMirrorSettingsList) {
+            if (!mirrorSettings.restApiURL.isEmpty()) {
+                // Delete old repository
+                StringOutputHandler outputHandler=new StringOutputHandler();
+                try {
+                    logger.debug("Delete mirror for " + mirrorSettings.restApiURL);
+                    mirrorRemoteAdmin.delete(mirrorSettings, repository, outputHandler);
+                } catch (Exception e) {
+                    logger.debug("Deleting Mirroring failed with " + outputHandler.getOutput() + e );
+                }
+            }
+        }
+    }
+
+    private void createRepositoryMirrors(Repository repository,List<MirrorSettings> newMirrorSettingsList) {
+        for (MirrorSettings mirrorSettings : newMirrorSettingsList) {
+            // Create new repository
+            StringOutputHandler outputHandler=new StringOutputHandler();
+            try {
+                logger.debug("Trigger mirror for " + mirrorSettings.mirrorRepoUrl);
+                pushProcessor.runMirrorCommand(mirrorSettings, repository, outputHandler);
+            } catch (Exception e) {
+                logger.debug("Mirroring failed with " + outputHandler.getOutput() + e);
+            }
+        }
+    }
+
+    public Settings getPluginSettings(Repository repository) {
+        RepositoryScope repositoryScope = new RepositoryScope(repository);
+        RepositoryHookSettings repositoryHookSettings = repositoryHookService.getSettings(new GetRepositoryHookSettingsRequest.Builder(repositoryScope, "com.englishtown.stash-hook-mirror:mirror-repository-hook").build());
+        if (repositoryHookSettings != null) {
+            return repositoryHookSettings.getSettings();
+        }
+        return repositoryHookService.createSettingsBuilder().build();
+    }
+
+    public List<MirrorSettings> getMirrorSettings(Settings settings) {
         return getMirrorSettings(settings, true, true, true);
     }
 
-    private List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes, boolean defAtomic) {
+    public List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes, boolean defAtomic) {
+        if(settings == null){
+            return null;
+        }
         Map<String, Object> allSettings = settings.asMap();
         int count = 0;
 
@@ -181,58 +278,68 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
                 ms.tags = (settings.getBoolean(SETTING_TAGS + suffix, defTags));
                 ms.notes = (settings.getBoolean(SETTING_NOTES + suffix, defNotes));
                 ms.atomic = (settings.getBoolean(SETTING_ATOMIC + suffix, defAtomic));
+                ms.restApiURL = (settings.getString(SETTING_REST_API_URL + suffix, ""));
+                ms.privateToken = (settings.getString(SETTING_PRIVATE_TOKEN + suffix, ""));
                 ms.suffix = String.valueOf(count++);
 
                 results.add(ms);
             }
         }
-
         return results;
     }
 
     private MirrorSettings interpolateMirrorRepoUrl(Repository repository, MirrorSettings settings) {
-        Matcher p= PLACEHOLDER_REGEX.matcher(settings.mirrorRepoUrl);
+        settings.mirrorRepoUrl = interpolateMirrorRepoUrl(repository, settings.mirrorRepoUrl);
+        return settings;
+    }
+
+    public String interpolateMirrorRepoUrl(Repository repository, String mirrorRepoUrl) {
+        Matcher p = PLACEHOLDER_REGEX.matcher(mirrorRepoUrl);
         StringBuffer stringBuffer = new StringBuffer();
-        while (p.find()){
-            Matcher o=OBJECT_REGEX.matcher(p.group(1));
-            Matcher m=METHOD_REGEX.matcher(p.group(1));
+        while (p.find()) {
+            Matcher o = OBJECT_REGEX.matcher(p.group(1));
+            Matcher m = METHOD_REGEX.matcher(p.group(1));
             try {
                 if (!o.find()) {
                     throw new NoSuchFieldException("Object not referenced");
                 }
-                Object instance =  null;
+                Object instance = null;
                 /* Cannot get method argument from reflection. Assign well known names */
                 switch (o.group(1)) {
                     case "repository":
-                        instance=repository;
+                        instance = repository;
                         break;
                     default:
-                        throw new NoSuchFieldException("Unknown object "+o.group(1));
+                        throw new NoSuchFieldException("Unknown object " + o.group(1));
                 }
-                while (m.find()){
+                while (m.find()) {
                     instance = instance.getClass().getMethod(m.group(1)).invoke(instance);
                 }
-                p.appendReplacement(stringBuffer,Matcher.quoteReplacement(instance.toString()));
+                if(instance.equals(repository)) {
+                    throw new NoSuchMethodException("Not repository method specified");
+                }
+                p.appendReplacement(stringBuffer, Matcher.quoteReplacement(instance.toString()));
             } catch (NoSuchFieldException | NoSuchMethodException e) {
                 logger.error("Failed to interpolate expression " + p.group(0) + " " + e);
-                p.appendReplacement(stringBuffer,Matcher.quoteReplacement(p.group(0)));
+                throw new RuntimeException("Failed to interpolate expression " + p.group(0) + " " + e);
+                //p.appendReplacement(stringBuffer, Matcher.quoteReplacement(p.group(0)));
             } catch (IllegalAccessException | InvocationTargetException e) {
-                p.appendReplacement(stringBuffer,Matcher.quoteReplacement(p.group(0)));
+                p.appendReplacement(stringBuffer, Matcher.quoteReplacement(p.group(0)));
             }
         }
         p.appendTail(stringBuffer);
-        settings.mirrorRepoUrl=stringBuffer.toString();
-        return settings;
+        return stringBuffer.toString();
     }
-    private void schedulePushes(Repository repository, List<MirrorSettings> list) {
-        for(MirrorSettings settings : list) {
-            MirrorRequest request=new MirrorRequest(repository, interpolateMirrorRepoUrl(repository,settings));
+
+    public void schedulePushes(Repository repository, List<MirrorSettings> list) {
+        for (MirrorSettings settings : list) {
+            MirrorRequest request = new MirrorRequest(repository, interpolateMirrorRepoUrl(repository, settings));
             try {
                 pushExecutor.schedule(request, 5L, TimeUnit.SECONDS);
             } catch (ClassCastException e) {
                 /* Quick and dirty way to re-initialize pushExecutor after plugin update */
                 pushExecutor.shutdown();
-                pushExecutor=createPushExecutor();
+                pushExecutor = createPushExecutor();
                 pushExecutor.schedule(request, 5L, TimeUnit.SECONDS);
             }
         }
@@ -300,6 +407,8 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
             values.put(SETTING_TAGS + ms.suffix, ms.tags);
             values.put(SETTING_NOTES + ms.suffix, ms.notes);
             values.put(SETTING_ATOMIC + ms.suffix, ms.atomic);
+            values.put(SETTING_REST_API_URL + ms.suffix, ms.restApiURL);
+            values.put(SETTING_PRIVATE_TOKEN + ms.suffix, (ms.privateToken.isEmpty() ? ms.privateToken : passwordEncryptor.encrypt(ms.privateToken)));
         }
 
         // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection

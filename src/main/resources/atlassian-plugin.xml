@@ -17,9 +17,19 @@
     <component-import key="pluginSettingsFactory" interface="com.atlassian.sal.api.pluginsettings.PluginSettingsFactory"/>
     <component-import key="repositoryService" interface="com.atlassian.bitbucket.repository.RepositoryService"/>
     <component-import key="scmService" interface="com.atlassian.bitbucket.scm.ScmService"/>
+    <component-import key="permissionService" interface="com.atlassian.bitbucket.permission.PermissionService"/>
+    <component-import key="soyTemplateRenderer" interface="com.atlassian.soy.renderer.SoyTemplateRenderer"/>
+    <component-import key="PageBuilderService" interface="com.atlassian.webresource.api.assembler.PageBuilderService"/>;
+    <!--component-import key="jsonArray" interface="net.sf.json.JSONArray"/-->;
+    <!--component-import key="ao" name="Active Objects service" interface="com.atlassian.activeobjects.external.ActiveObjects">
+          <description>Component to access Active Objects functionality from the plugin</description>
+        </component-import-->
+
+
 
     <component key="mirrorRepositoryHook" class="com.englishtown.bitbucket.hook.MirrorRepositoryHook"/>
     <component key="mirrorBucketProcessor" class="com.englishtown.bitbucket.hook.MirrorBucketProcessor"/>
+    <component key="mirrorRemoteAdmin" class="com.englishtown.bitbucket.hook.MirrorRemoteAdmin"/>
     <component key="passwordEncryptor" class="com.englishtown.bitbucket.hook.DefaultPasswordEncryptor"/>
     <component key="settingsReflectionHelper" class="com.englishtown.bitbucket.hook.DefaultSettingsReflectionHelper"/>
 
@@ -40,4 +50,43 @@
             <scope>repository</scope>
         </scopes>
     </repository-hook>
+
+    <web-item key="mirror-repository-hook-action" name="Repository mirror web item" weight="0" section="internal.repository.sidebar.footer">
+        <conditions type="AND">
+            <condition class="com.atlassian.bitbucket.web.conditions.HasRepositoryPermissionCondition" >
+                <param name="permission">REPO_ADMIN</param>
+            </condition>
+            <condition class="com.englishtown.bitbucket.hook.MirrorRepositoryHasConfigurationCondition" />
+        </conditions>
+        <styleClass>aui-sidebar-settings-button</styleClass>
+        <label key="mirror-repository-hook.mirror.action"/>
+        <!--link>hren</link-->
+        <link>${navBuilder.pluginServlets().path('mirror-hook', 'projects', $repository.project.key, 'repos', $repository.slug).buildRelNoContext()}</link>
+        <!--link>/plugins/servlet/mirror-hook?project=$repository.project.key&amp;repository=$repository.slug</link-->
+        <!--link>/plugins/servlet/mirror-hook?project={$repository.project.key}&amp;repository={$repository.slug}</link-->
+        <!--link>mirror-hook</link-->
+        <!--link>${navBuilder.repo($repository).buildRelNoContext()}/mirror-hook</link-->
+        <param name="iconClass" value="icon-mirror" />
+    </web-item>
+    <web-resource key="mirror-hook-resources" name="Repository mirror hook web-item resources">
+        <dependency>com.atlassian.auiplugin:ajs</dependency>
+        <dependency>com.atlassian.auiplugin:message</dependency>
+        <resource type="download" name="mirror-hook.css" location="css/mirror-hook.css"/>
+        <resource type="download" name="icons/mirror-icon-small.png" location="icons/mirror-icon-small.png"/>
+        <context>atl.general</context>
+    </web-resource>
+    <servlet key="mirror-hook-action-servlet" name="Mirror hook action  Servlet"
+             class="com.englishtown.bitbucket.hook.MirrorRepositoryServlet">
+        <url-pattern>/mirror-hook/*</url-pattern>
+    </servlet>
+
+    <client-resource key="mirror-hook-action-form">
+        <directory location="/static/">
+            <include>/**/*.soy</include>
+            <include>/**/*.js</include>
+        </directory>
+        <dependency>com.atlassian.bitbucket.server.bitbucket-web:server-soy-templates</dependency>
+        <dependency>com.atlassian.bitbucket.server.bitbucket-web:global</dependency>
+    </client-resource>
+
 </atlassian-plugin>

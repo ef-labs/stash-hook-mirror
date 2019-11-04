@@ -1,0 +1,97 @@
+{namespace com.englishtown.bitbucket.hook}
+
+/**
+ * @param config
+ * @param errors
+ * @param repository
+ */
+{template .action}
+    <html>
+    <head>
+        <meta name="decorator" content="bitbucket.repository.general">
+        <meta name="projectKey" content="{$repository.project.key}">
+        <meta name="repositorySlug" content="{$repository.slug}">
+        <meta name="activeTab" content="mirror-repository-hook-action">
+    </head>
+    <body>
+        {call widget.aui.pageHeader}
+            {param content}
+            <h2>{getText('mirror-repository-hook.mirror.action.heading', $repository.project.key, $repository.slug)}</h2>
+            {/param}
+        {/call}
+        {call aui.form.form}
+        {param action: '' /}
+        {param content}
+
+            {foreach $index in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+                {if $config['mirrorRepoUrl' + $index]}
+                    {call aui.form.form}
+                        {param action: '' /}
+                        {param content}
+                            <div class="field-group">
+                                <label for="{'code'+$index}">
+                            {call widget.aui.form.submit}
+                                {param id: 'trigger' + $index /}
+                                {param label: 'Mirror' /}
+                                {param disabled: $errors['mirrorRepoUrl' + $index] ? 'true' : '' /}
+                            {/call}
+                                </label>
+                                <p>{$config['mirrorRepoUrl' + $index]}</p>
+                            {if $errors['mirrorRepoUrl' + $index]}
+                                    {call widget.aui.form.fieldErrors}
+                                        {param id: 'errors' + $index /}
+                                        {param errors: $errors['mirrorRepoUrl' + $index] /}
+                                    {/call}
+                            {/if}
+                            {if $config['restApiURL' + $index]}
+                                {call widget.aui.form.submit}
+                                    {param id: 'delete' + $index /}
+                                    {param label: 'Delete from '+$config['restApiURL' + $index]/}
+                                {/call}
+                            {/if}
+
+                            {if $config['stdout' + $index]}
+                                {call aui.message.success}
+                                    {param isCloseable: true /}
+                                    {param content}
+                                        <pre>
+                                            <code>
+                                                {$config['stdout' + $index]}
+                                            </code>
+                                        </pre>
+                                    {/param}
+                                {/call}
+                            {/if}
+                            {if $config['stderr' + $index]}
+                                {call aui.message.error}
+                                    {param isCloseable: true /}
+                                    {param content}
+                                        <pre>
+                                            <code>
+                                                {$config['stderr' + $index]}
+                                            </code>
+                                        </pre>
+                                    {/param}
+                                {/call}
+                            {/if}
+                            </div>
+                        {/param}
+                    {/call}
+                {/if}
+            {/foreach}
+/**        {call aui.form.form}
+            {param action: '' /}
+            {param content}
+                {call widget.aui.form.submit}
+                    {param id: 'triggerAll' /}
+                    {param label: 'Trigger All' /}
+                {/call}
+                <input type="hidden" id="triggerAll" name="trigger" value=""/>
+            {/param}
+        {/call}
+*/
+        {/param}
+    {/call}
+    </body>
+    </html>
+{/template}

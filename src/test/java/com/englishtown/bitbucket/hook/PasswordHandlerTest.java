@@ -14,15 +14,16 @@ public class PasswordHandlerTest {
 
     @SuppressWarnings("FieldCanBeLocal")
     private final String password = "pwd@123";
-    private final String secretText = "https://test.user:pwd@123@test.englishtown.com/scm/test/test.git";
-    private final String cleanedText = "https://test.user:*****@test.englishtown.com/scm/test/test.git";
+    private final String privateToken = "TOKENDATA";
+    private final String secretText = "https://test.user:pwd@123@test.englishtown.com/scm/test/test.git?private_token=TOKENDATA";
+    private final String cleanedText = "https://test.user:*****@test.englishtown.com/scm/test/test.git?private_token=*****";
     private CommandExitHandler exitHandler;
     private PasswordHandler handler;
 
     @Before
     public void setup() throws Exception {
         exitHandler = mock(CommandExitHandler.class);
-        handler = new PasswordHandler(password, exitHandler);
+        handler = new PasswordHandler(password, privateToken, exitHandler);
     }
 
     @Test

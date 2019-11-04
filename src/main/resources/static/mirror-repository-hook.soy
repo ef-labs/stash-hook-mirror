@@ -102,6 +102,24 @@
                 ]
             ] /}
         {/call}
+        {call aui.form.textField}
+            {param id: 'restApiURL' + $index /}
+            {param value: $config['restApiURL' + $index] /}
+            {param labelContent}
+                {getText('mirror-repository-hook.restApiURL.label')}
+            {/param}
+            {param descriptionText: getText('mirror-repository-hook.restApiURL.description') /}
+            {param errorTexts: $errors ? $errors['restApiURL' + $index] : null /}
+        {/call}
+        {call aui.form.passwordField}
+            {param id: 'privateToken' + $index /}
+            {param value: $config['privateToken' + $index] /}
+            {param labelContent}
+                {getText('mirror-repository-hook.privateToken.label')}
+            {/param}
+            {param descriptionText: getText('mirror-repository-hook.privateToken.description') /}
+            {param errorTexts: $errors ? $errors['privateToken' + $index] : null /}
+        {/call}
 
     </fieldset>
 {/template}
