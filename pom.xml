@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.englishtown</groupId>
@@ -67,17 +68,16 @@
             <artifactId>bitbucket-git-common</artifactId>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>com.atlassian.sal</groupId>
             <artifactId>sal-api</artifactId>
             <scope>provided</scope>
         </dependency>
-            <dependency>
-                <groupId>com.atlassian.bitbucket.server</groupId>
-                <artifactId>bitbucket-web-common</artifactId>
-                <scope>provided</scope>
-            </dependency>
+        <dependency>
+            <groupId>com.atlassian.bitbucket.server</groupId>
+            <artifactId>bitbucket-web-common</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>com.atlassian.soy</groupId>
             <artifactId>soy-template-renderer-api</artifactId>
@@ -86,8 +86,8 @@
         </dependency>
         <dependency>
             <groupId>com.atlassian.utils</groupId>
-                <artifactId>atlassian-processutils</artifactId>
-                <version>1.8.3</version>
+            <artifactId>atlassian-processutils</artifactId>
+            <version>1.8.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -96,48 +96,24 @@
             <version>1.8</version>
             <scope>compile</scope>
         </dependency>
-
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-mapper-asl</artifactId>
             <version>1.9.13-atlassian-2</version>
             <scope>provided</scope>
         </dependency>
-        <!--dependency>
-            <groupId>net.sf.json-lib</groupId>
-            <artifactId>json-lib</artifactId>
-            <version>2.4</version>
-            <classifier>jdk15</classifier>
-            <scope>compile</scope>
-        </dependency-->
-
-        <!--dependency>
-            <groupId>com.fasterxml.jackson.jaxrs</groupId>
-            <artifactId>jackson-jaxrs-json-provider</artifactId>
-            <version>2.10.0</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.10.0</version>
-            <scope>compile</scope>
-        </dependency-->
-
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>3.0.1</version>
             <scope>provided</scope>
         </dependency>
-            <dependency>
-                <groupId>com.atlassian.soy</groupId>
-                <artifactId>atlassian-soy-spring-mvc-support</artifactId>
-                <version>5.0.0</version>
-                <scope>provided</scope>
-            </dependency>
-
+        <dependency>
+            <groupId>com.atlassian.soy</groupId>
+            <artifactId>atlassian-soy-spring-mvc-support</artifactId>
+            <version>5.0.0</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>com.atlassian.bitbucket.server</groupId>
             <artifactId>bitbucket-test-util</artifactId>
@@ -159,8 +135,6 @@
             <version>2.25.1</version>
             <scope>test</scope>
         </dependency>
-
-
     </dependencies>
 
     <build>
