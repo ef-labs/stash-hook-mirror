@@ -11,7 +11,6 @@ import com.atlassian.bitbucket.i18n.I18nService;
 import com.atlassian.bitbucket.project.Project;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.scm.git.GitScm;
-import com.atlassian.bitbucket.scm.git.command.GitCommandExitHandler;
 import com.atlassian.bitbucket.scope.ProjectScope;
 import com.atlassian.bitbucket.scope.RepositoryScope;
 import com.atlassian.bitbucket.scope.Scope;

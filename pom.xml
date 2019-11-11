@@ -91,10 +91,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-client</artifactId>
-            <version>1.8</version>
-            <scope>compile</scope>
+            <groupId>com.atlassian.plugins.rest</groupId>
+            <artifactId>com.atlassian.jersey-library</artifactId>
+            <version>6.0.2</version>
+            <scope>provided</scope>
+            <type>pom</type>
         </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
