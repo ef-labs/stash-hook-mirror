@@ -5,19 +5,25 @@ import com.atlassian.bitbucket.i18n.I18nService;
 import com.atlassian.bitbucket.permission.Permission;
 import com.atlassian.bitbucket.repository.Repository;
 import com.atlassian.bitbucket.repository.RepositoryService;
-import com.atlassian.bitbucket.scm.Command;
-import com.atlassian.bitbucket.scm.ScmCommandBuilder;
-import com.atlassian.bitbucket.scm.ScmService;
+import com.atlassian.bitbucket.scm.*;
 import com.atlassian.bitbucket.scm.git.command.GitCommandExitHandler;
 import com.atlassian.bitbucket.server.ApplicationPropertiesService;
 import com.atlassian.bitbucket.user.SecurityService;
+import com.atlassian.utils.process.ProcessException;
+import com.atlassian.utils.process.StringOutputHandler;
+import com.atlassian.utils.process.Watchdog;
 import com.google.common.base.Strings;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
@@ -49,6 +55,7 @@ public class MirrorBucketProcessor implements BucketProcessor<MirrorRequest> {
         this.securityService = securityService;
 
         timeout = Duration.ofSeconds(propertiesService.getPluginProperty(PROP_TIMEOUT, 120L));
+        log.debug(PROP_TIMEOUT+": "+timeout.getSeconds());
     }
 
     @Override
@@ -75,16 +82,21 @@ public class MirrorBucketProcessor implements BucketProcessor<MirrorRequest> {
                         return null;
                     }
                     runMirrorCommand(request.getSettings(), repository);
-
                     return null;
                 });
     }
 
-    private void runMirrorCommand(MirrorSettings settings, Repository repository) {
+    public void runMirrorCommand(MirrorSettings settings, Repository repository) {
+        runMirrorCommand(settings, repository, null);
+    }
+    public void runMirrorCommand(MirrorSettings settings, Repository repository, StringOutputHandler outputHandler) {
         log.debug("{}: Preparing to push changes to mirror", repository);
 
-        String password = passwordEncryptor.decrypt(settings.password);
-        String authenticatedUrl = getAuthenticatedUrl(settings.mirrorRepoUrl, settings.username, password);
+        String plainPassword = passwordEncryptor.decrypt(settings.password);
+        String plainPrivateToken = passwordEncryptor.decrypt(settings.privateToken);
+        PasswordHandler passwordHandler = new PasswordHandler(plainPassword,plainPrivateToken,
+                new GitCommandExitHandler(i18nService, repository));
+        String authenticatedUrl = getAuthenticatedUrl(settings.mirrorRepoUrl, settings.username, plainPassword);
 
         // Call push command with the prune flag and refspecs for heads and tags
         // Do not use the mirror flag as pull-request refs are included
@@ -116,16 +128,36 @@ public class MirrorBucketProcessor implements BucketProcessor<MirrorRequest> {
             builder.argument("+refs/notes/*:refs/notes/*");
         }
 
-        PasswordHandler passwordHandler = new PasswordHandler(settings.password,
-                new GitCommandExitHandler(i18nService, repository));
 
         Command<String> command = builder.errorHandler(passwordHandler)
                 .exitHandler(passwordHandler)
                 .build(passwordHandler);
         command.setTimeout(timeout);
-
-        Object result = command.call();
-        log.info("{}: Push completed with the following output:\n{}", repository, result);
+        Object result=null;
+        try {
+            result = command.call();
+            if(result != null) {
+                passwordHandler.cleanText(result.toString());
+            }
+        } catch (Exception e) {
+            if (outputHandler != null) {
+                try {
+                    outputHandler.process(new ByteArrayInputStream(passwordHandler.getOutput().getBytes()));
+                } catch (ProcessException s) {
+                    log.error("Failed to process response: " + s.getMessage());
+                }
+            }
+            log.info("{}: Push failed with the following output:\n{}", repository, passwordHandler.getOutput());
+            throw e;
+        }
+        if (outputHandler != null) {
+            try {
+                outputHandler.process(new ByteArrayInputStream(passwordHandler.getOutput().getBytes()));
+            } catch (ProcessException s) {
+                log.error("Failed to process response: " + s.getMessage());
+            }
+        }
+        log.debug("{}: Push completed with the following output:\n{}", repository, passwordHandler.getOutput());
     }
 
     String getAuthenticatedUrl(String mirrorRepoUrl, String username, String password) {

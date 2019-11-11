@@ -42,7 +42,7 @@
  */
 {template .subview}
     <fieldset class="et-mirror-group">
-        {call aui.form.textField}
+        {call aui.form.textareaField}
             {param id: 'mirrorRepoUrl' + $index /}
             {param value: $config['mirrorRepoUrl' + $index] /}
             {param labelContent}
@@ -51,6 +51,7 @@
             {param isRequired: true /}
             {param descriptionText: getText('mirror-repository-hook.mirrorRepoUrl.description') /}
             {param extraClasses: 'et-mirror-repo' /}
+            {param fieldWidth: 'long' /}
             {param errorTexts: $errors ? $errors['mirrorRepoUrl' + $index] : null /}
         {/call}
         {call aui.form.textField}
@@ -100,6 +101,24 @@
                     'isChecked' : $config['atomic' + $index] != false
                 ]
             ] /}
+        {/call}
+        {call aui.form.textField}
+            {param id: 'restApiURL' + $index /}
+            {param value: $config['restApiURL' + $index] /}
+            {param labelContent}
+                {getText('mirror-repository-hook.restApiURL.label')}
+            {/param}
+            {param descriptionText: getText('mirror-repository-hook.restApiURL.description') /}
+            {param errorTexts: $errors ? $errors['restApiURL' + $index] : null /}
+        {/call}
+        {call aui.form.passwordField}
+            {param id: 'privateToken' + $index /}
+            {param value: $config['privateToken' + $index] /}
+            {param labelContent}
+                {getText('mirror-repository-hook.privateToken.label')}
+            {/param}
+            {param descriptionText: getText('mirror-repository-hook.privateToken.description') /}
+            {param errorTexts: $errors ? $errors['privateToken' + $index] : null /}
         {/call}
 
     </fieldset>
