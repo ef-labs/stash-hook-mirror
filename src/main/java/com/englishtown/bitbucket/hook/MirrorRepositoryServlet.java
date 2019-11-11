@@ -88,8 +88,8 @@ public class MirrorRepositoryServlet extends HttpServlet {
                         mirrorRemoteAdmin.delete(mirrorSettings, repository, outputHandler);
                         allSettings.put("stdout" + mirrorSettings.suffix, outputHandler.getOutput());
                     } catch (Exception e) {
-                        log.debug("Deleting Mirroring failed with " + e);
-                        allSettings.put("stderr" + mirrorSettings.suffix, e + "\n" + outputHandler.getOutput());
+                        log.debug("Deleting Mirroring failed with " + e.getMessage());
+                        allSettings.put("stderr" + mirrorSettings.suffix, e.getMessage() + "\n" + outputHandler.getOutput());
                     }
                 }
                 if (req.getParameter("trigger" + mirrorSettings.suffix) != null) {

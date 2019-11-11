@@ -69,14 +69,13 @@ public class MirrorRemoteAdmin {
         WebResource webResource = client
                 .resource(settings.restApiURL + "/api/v4/projects")
                 .queryParam("search", repository.getName());
-        if (!settings.privateToken.isEmpty()) {
 
-            webResource = webResource.queryParam("private_token", plainPrivateToken);
+        WebResource.Builder webResourceBuilder= webResource.getRequestBuilder().accept(MediaType.APPLICATION_JSON);
+        if (!settings.privateToken.isEmpty()) {
+            webResourceBuilder = webResourceBuilder.header("PRIVATE-TOKEN",plainPrivateToken);
         }
 
-        ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON)
-                .get(ClientResponse.class);
-
+        ClientResponse response = webResourceBuilder.get(ClientResponse.class);
         if (response.getStatus() != 200) {
             addToStream(passwordHandler, response.toString());
             throw new RuntimeException("Failed : HTTP error code : "
@@ -91,7 +90,10 @@ public class MirrorRemoteAdmin {
         }
         Integer repoId = null;
         for (JsonNode project : output) {
-            if (project.get("path_with_namespace").asText().equals(repository.getProject().getKey() + "/" + repository.getName())) {
+            if (!project.has("name_with_namespace")) {
+                continue;
+            }
+            if (project.get("name_with_namespace").asText().equals(repository.getProject().getName() + " / " + repository.getName())) {
                 repoId = project.get("id").asInt();
                 break;
             }
@@ -103,11 +105,11 @@ public class MirrorRemoteAdmin {
 
         webResource = client
                 .resource(settings.restApiURL + "/api/v4/projects/" + repoId);
+        webResourceBuilder= webResource.getRequestBuilder().accept(MediaType.APPLICATION_JSON);
         if (!settings.privateToken.isEmpty()) {
-            webResource = webResource.queryParam("private_token", plainPrivateToken);
+            webResourceBuilder = webResourceBuilder.header("PRIVATE-TOKEN",plainPrivateToken);
         }
-        response = webResource.accept(MediaType.APPLICATION_JSON)
-                .delete(ClientResponse.class);
+        response = webResourceBuilder.delete(ClientResponse.class);
         if (response.getStatus() != 202) {
             addToStream(passwordHandler, response.toString());
             throw new RuntimeException("Failed : HTTP error code : "

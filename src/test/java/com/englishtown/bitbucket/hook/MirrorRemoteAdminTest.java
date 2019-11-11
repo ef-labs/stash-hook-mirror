@@ -58,6 +58,7 @@ public class MirrorRemoteAdminTest {
         when(repo.getName()).thenReturn("test");
         project = mock(Project.class);
         when(project.getKey()).thenReturn("PROJECT");
+        when(project.getName()).thenReturn("PROJECT");
         when(repo.getProject()).thenReturn(project);
         when(passwordEncryptor.decrypt(anyString())).then(AdditionalAnswers.returnsFirstArg());
     }
@@ -112,8 +113,9 @@ public class MirrorRemoteAdminTest {
         mirrorSettings.restApiURL = "http://localhost:" + wireMockRule.port();
         mirrorSettings.privateToken = "PRIVATETOKEN";
 
-        stubFor(get(urlEqualTo("/api/v4/projects?search=test&private_token=PRIVATETOKEN"))
+        stubFor(get(urlEqualTo("/api/v4/projects?search=test"))
                 .withHeader("Accept", equalTo(MediaType.APPLICATION_JSON))
+                .withHeader("PRIVATE-TOKEN", equalTo(mirrorSettings.privateToken))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", MediaType.APPLICATION_JSON)
@@ -131,12 +133,13 @@ public class MirrorRemoteAdminTest {
         mirrorSettings.restApiURL = "http://localhost:" + wireMockRule.port();
         mirrorSettings.privateToken = "PRIVATETOKEN";
 
-        stubFor(get(urlEqualTo("/api/v4/projects?search=test&private_token=PRIVATETOKEN"))
+        stubFor(get(urlEqualTo("/api/v4/projects?search=test"))
                 .withHeader("Accept", equalTo(MediaType.APPLICATION_JSON))
+                .withHeader("PRIVATE-TOKEN", equalTo(mirrorSettings.privateToken))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", MediaType.APPLICATION_JSON)
-                        .withBody("[{\"id\":1,\"path_with_namespace\":\"PROJECT/testing\"},{\"id\":3,\"path_with_namespace\":\"OTHER/test\"}]")));
+                        .withBody("[{\"id\":1,\"name_with_namespace\":\"PROJECT / testing\"},{\"id\":3,\"name_with_namespace\":\"OTHER / test\"}]")));
         try {
             mirrorRemoteAdmin.delete(mirrorSettings, repo, handler);
             Assert.fail("Exception not thrown");
@@ -150,15 +153,17 @@ public class MirrorRemoteAdminTest {
         mirrorSettings.restApiURL = "http://localhost:" + wireMockRule.port();
         mirrorSettings.privateToken = "PRIVATETOKEN";
 
-        stubFor(get(urlEqualTo("/api/v4/projects?search=test&private_token=PRIVATETOKEN"))
+        stubFor(get(urlEqualTo("/api/v4/projects?search=test"))
                 .withHeader("Accept", equalTo(MediaType.APPLICATION_JSON))
+                .withHeader("PRIVATE-TOKEN", equalTo(mirrorSettings.privateToken))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", MediaType.APPLICATION_JSON)
-                        .withBody("[{\"id\":1,\"path_with_namespace\":\"PROJECT/testing\"},{\"id\":2,\"path_with_namespace\":\"PROJECT/test\"},{\"id\":3,\"path_with_namespace\":\"OTHER/test\"}]")));
+                        .withBody("[{\"id\":1,\"path_with_namespace\":\"PROJECT / testing\"},{\"id\":2,\"name_with_namespace\":\"PROJECT / test\"},{\"id\":3,\"name_with_namespace\":\"OTHER/test\"}]")));
 
-        stubFor(delete(urlEqualTo("/api/v4/projects/2?private_token=PRIVATETOKEN"))
+        stubFor(delete(urlEqualTo("/api/v4/projects/2"))
                 .withHeader("Accept", equalTo(MediaType.APPLICATION_JSON))
+                .withHeader("PRIVATE-TOKEN", equalTo(mirrorSettings.privateToken))
                 .willReturn(aResponse()
                         .withStatus(403)
                         .withHeader("Content-Type", MediaType.TEXT_PLAIN)
@@ -177,15 +182,17 @@ public class MirrorRemoteAdminTest {
         mirrorSettings.restApiURL = "http://localhost:" + wireMockRule.port();
         mirrorSettings.privateToken = "PRIVATETOKEN";
 
-        stubFor(get(urlEqualTo("/api/v4/projects?search=test&private_token=PRIVATETOKEN"))
+        stubFor(get(urlEqualTo("/api/v4/projects?search=test"))
             .withHeader("Accept", equalTo(MediaType.APPLICATION_JSON))
+            .withHeader("PRIVATE-TOKEN", equalTo(mirrorSettings.privateToken))
             .willReturn(aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", MediaType.APPLICATION_JSON)
-                .withBody("[{\"id\":1,\"path_with_namespace\":\"PROJECT/testing\"},{\"id\":2,\"path_with_namespace\":\"PROJECT/test\"},{\"id\":3,\"path_with_namespace\":\"OTHER/test\"}]")));
+                .withBody("[{\"id\":1,\"name_with_namespace\":\"PROJECT / testing\"},{\"id\":2,\"name_with_namespace\":\"PROJECT / test\"},{\"id\":3,\"name_with_namespace\":\"OTHER / test\"}]")));
 
-        stubFor(delete(urlEqualTo("/api/v4/projects/2?private_token=PRIVATETOKEN"))
+        stubFor(delete(urlEqualTo("/api/v4/projects/2"))
                 .withHeader("Accept", equalTo(MediaType.APPLICATION_JSON))
+                .withHeader("PRIVATE-TOKEN", equalTo(mirrorSettings.privateToken))
                 .willReturn(aResponse()
                         .withStatus(202)));
 
