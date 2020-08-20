@@ -29,9 +29,9 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <bitbucket.version>5.5.0</bitbucket.version>
+        <bitbucket.version>6.5.0</bitbucket.version>
         <bitbucket.test.version>${bitbucket.version}</bitbucket.test.version>
-        <amps.version>6.3.17</amps.version>
+        <amps.version>8.1.1</amps.version>
     </properties>
 
     <dependencyManagement>
@@ -145,11 +145,11 @@
     <distributionManagement>
         <snapshotRepository>
             <id>etown-nexus-snapshots</id>
-            <url>https://nexus-bos.englishtown.com/content/repositories/snapshots</url>
+            <url>https://nexus2.eflabs.io/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
             <id>etown-nexus-releases</id>
-            <url>https://nexus-bos.englishtown.com/content/repositories/releases</url>
+            <url>https://nexus2.eflabs.io/content/repositories/releases</url>
         </repository>
     </distributionManagement>
 
