@@ -146,11 +146,11 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
         }
     }
 
-    protected List<MirrorSettings> getMirrorSettings(Settings settings) {
+    private List<MirrorSettings> getMirrorSettings(Settings settings) {
         return getMirrorSettings(settings, true, true, true, true, true);
     }
 
-    protected List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes, boolean defAtomic, boolean defPrune, boolean defForce) {       
+    private List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes, boolean defAtomic, boolean defPrune, boolean defForce) {
         Map<String, Object> allSettings = settings.asMap();
         int count = 0;
 

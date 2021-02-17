@@ -44,7 +44,7 @@ public class MirrorBucketProcessorTest {
     private static final MirrorSettings SETTINGS = ownSettings(true, true);
 
     private static MirrorSettings ownSettings(boolean pruneFlag, boolean forceFlag) {
-        return new MirrorSettings() {            {
+        return new MirrorSettings() {{
             mirrorRepoUrl = URL_SSH;
             password = "test-password";
             refspec = "+refs/heads/master:refs/heads/master +refs/heads/develop:refs/heads/develop";
@@ -55,8 +55,7 @@ public class MirrorBucketProcessorTest {
             tags = true;
             prune = pruneFlag;
             force = forceFlag;
-        }
-        };
+        }};
     }
 
     private static final MirrorRequest REQUEST = new MirrorRequest(1, SETTINGS);
