@@ -5,7 +5,11 @@ import com.atlassian.bitbucket.concurrent.ConcurrencyService;
 import com.atlassian.bitbucket.hook.repository.*;
 import com.atlassian.bitbucket.project.Project;
 import com.atlassian.bitbucket.repository.Repository;
+import com.atlassian.bitbucket.scm.CommandErrorHandler;
+import com.atlassian.bitbucket.scm.CommandExitHandler;
+import com.atlassian.bitbucket.scm.CommandOutputHandler;
 import com.atlassian.bitbucket.scm.git.GitScm;
+import com.atlassian.bitbucket.scm.git.command.GitScmCommandBuilder;
 import com.atlassian.bitbucket.scope.Scope;
 import com.atlassian.bitbucket.scope.Scopes;
 import com.atlassian.bitbucket.server.ApplicationPropertiesService;
@@ -64,7 +68,7 @@ public class MirrorRepositoryHookTest {
 
     @Before
     public void setup() {
-        doReturn(bucketedExecutor).when(concurrencyService).getBucketedExecutor(anyString(), any());
+       doReturn(bucketedExecutor).when(concurrencyService).getBucketedExecutor(anyString(), any());
 
         when(propertiesService.getPluginProperty(eq(PROP_ATTEMPTS), anyInt())).thenAnswer(returnArg(1));
         when(propertiesService.getPluginProperty(eq(PROP_THREADS), anyInt())).thenAnswer(returnArg(1));
@@ -238,56 +242,8 @@ public class MirrorRepositoryHookTest {
         verifyZeroInteractions(bucketedExecutor, errors, settings);
     }
 
-    @Test
-    public void testPruneFlag() throws Exception{
-        when(passwordEncryptor.decrypt(anyString())).thenReturn(password);
-
-        Repository repo = mock(Repository.class);
-
-        RepositoryHookContext context = mock(RepositoryHookContext.class);
-        Settings settings = ownSettings(false, true);
-        when(context.getSettings()).thenReturn(settings);
-        when(context.getRepository()).thenReturn(repo);
-
-        hook.postReceive(context, new ArrayList<>());
-
-        verify(executor).submit(argumentCaptor.capture());
-        Runnable runnable = argumentCaptor.getValue();
-        runnable.run();
-
-        verify(builder, times(1)).command(eq("push"));
-        verify(builder, never()).argument(eq("--prune"));
-        verify(builder, times(1)).argument(eq("--atomic"));
-        verify(builder, times(1)).argument(eq(repository));
-        verify(builder, times(1)).argument(eq("--force"));
-    }
-
-    @Test
-    public void testForceFlag() throws Exception{
-        when(passwordEncryptor.decrypt(anyString())).thenReturn(password);
-
-        Repository repo = mock(Repository.class);
-
-        RepositoryHookContext context = mock(RepositoryHookContext.class);
-        Settings settings = ownSettings(true, false);
-        when(context.getSettings()).thenReturn(settings);
-        when(context.getRepository()).thenReturn(repo);
-
-        hook.postReceive(context, new ArrayList<>());
-
-        verify(executor).submit(argumentCaptor.capture());
-        Runnable runnable = argumentCaptor.getValue();
-        runnable.run();
-
-        verify(builder, times(1)).command(eq("push"));
-        verify(builder, times(1)).argument(eq("--prune"));
-        verify(builder, times(1)).argument(eq("--atomic"));
-        verify(builder, times(1)).argument(eq(repository));
-        verify(builder, never()).argument(eq("--force"));
-    }
 
     private PostRepositoryHookContext buildContext() {
-        RepositoryHookContext context = mock(RepositoryHookContext.class);
         Settings settings = defaultSettings();
 
         PostRepositoryHookContext context = mock(PostRepositoryHookContext.class);
@@ -318,24 +274,6 @@ public class MirrorRepositoryHookTest {
         when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_ATOMIC), eq(true))).thenReturn(true);
         when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_PRUNE), eq(true))).thenReturn(true);
         when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_FORCE), eq(true))).thenReturn(true);
-        return settings;
-    }
-
-    private Settings ownSettings(boolean pruneFlag, boolean forceFlag) {
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL, "");
-
-        Settings settings = mock(Settings.class);
-        when(settings.asMap()).thenReturn(map);
-        when(settings.getString(eq(MirrorRepositoryHook.SETTING_MIRROR_REPO_URL), eq(""))).thenReturn(mirrorRepoUrlHttp);
-        when(settings.getString(eq(MirrorRepositoryHook.SETTING_USERNAME), eq(""))).thenReturn(username);
-        when(settings.getString(eq(MirrorRepositoryHook.SETTING_PASSWORD), eq(""))).thenReturn(password);
-        when(settings.getString(eq(MirrorRepositoryHook.SETTING_REFSPEC), eq(""))).thenReturn(refspec);
-        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_TAGS), eq(true))).thenReturn(true);
-        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_NOTES), eq(true))).thenReturn(true);
-        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_ATOMIC), eq(true))).thenReturn(true);
-        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_PRUNE), eq(pruneFlag))).thenReturn(pruneFlag);
-        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_FORCE), eq(forceFlag))).thenReturn(forceFlag);
         return settings;
     }
 }
