@@ -35,6 +35,8 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
     static final String SETTING_TAGS = "tags";
     static final String SETTING_NOTES = "notes";
     static final String SETTING_ATOMIC = "atomic";
+    static final String SETTING_PRUNE = "prune";
+    static final String SETTING_FORCE = "force";
 
     /**
      * Trigger types that don't cause a mirror to happen
@@ -125,7 +127,8 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
             boolean ok = true;
             logger.debug("MirrorRepositoryHook: validate started.");
 
-            List<MirrorSettings> mirrorSettings = getMirrorSettings(settings, false, false, false);
+            List<MirrorSettings> mirrorSettings = getMirrorSettings(settings, false, false, false, false, false);
+
             for (MirrorSettings ms : mirrorSettings) {
                 if (!validate(ms, errors)) {
                     ok = false;
@@ -144,10 +147,10 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
     }
 
     private List<MirrorSettings> getMirrorSettings(Settings settings) {
-        return getMirrorSettings(settings, true, true, true);
+        return getMirrorSettings(settings, true, true, true, true, true);
     }
 
-    private List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes, boolean defAtomic) {
+    private List<MirrorSettings> getMirrorSettings(Settings settings, boolean defTags, boolean defNotes, boolean defAtomic, boolean defPrune, boolean defForce) {
         Map<String, Object> allSettings = settings.asMap();
         int count = 0;
 
@@ -164,6 +167,8 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
                 ms.tags = (settings.getBoolean(SETTING_TAGS + suffix, defTags));
                 ms.notes = (settings.getBoolean(SETTING_NOTES + suffix, defNotes));
                 ms.atomic = (settings.getBoolean(SETTING_ATOMIC + suffix, defAtomic));
+                ms.prune = (settings.getBoolean(SETTING_PRUNE + suffix, defPrune));
+                ms.force = (settings.getBoolean(SETTING_FORCE + suffix, defForce));
                 ms.suffix = String.valueOf(count++);
 
                 results.add(ms);
@@ -239,6 +244,8 @@ public class MirrorRepositoryHook implements PostRepositoryHook<RepositoryHookRe
             values.put(SETTING_TAGS + ms.suffix, ms.tags);
             values.put(SETTING_NOTES + ms.suffix, ms.notes);
             values.put(SETTING_ATOMIC + ms.suffix, ms.atomic);
+            values.put(SETTING_PRUNE + ms.suffix, ms.prune);
+            values.put(SETTING_FORCE + ms.suffix, ms.force);
         }
 
         // Unfortunately the settings are stored in an immutable map, so need to cheat with reflection

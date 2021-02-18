@@ -1,5 +1,6 @@
 package com.englishtown.bitbucket.hook;
 
+import com.atlassian.bitbucket.hook.repository.PostRepositoryHookContext;
 import com.atlassian.bitbucket.i18n.I18nService;
 import com.atlassian.bitbucket.i18n.SimpleI18nService;
 import com.atlassian.bitbucket.repository.Repository;
@@ -8,6 +9,7 @@ import com.atlassian.bitbucket.scm.ScmService;
 import com.atlassian.bitbucket.scm.git.command.GitCommand;
 import com.atlassian.bitbucket.scm.git.command.GitScmCommandBuilder;
 import com.atlassian.bitbucket.server.ApplicationPropertiesService;
+import com.atlassian.bitbucket.setting.Settings;
 import com.atlassian.bitbucket.user.DummySecurityService;
 import com.atlassian.bitbucket.user.SecurityService;
 import org.junit.Before;
@@ -20,7 +22,9 @@ import org.mockito.junit.MockitoRule;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.atlassian.bitbucket.mockito.MockitoUtils.returnArg;
 import static com.atlassian.bitbucket.mockito.MockitoUtils.returnFirst;
@@ -37,8 +41,10 @@ public class MirrorBucketProcessorTest {
     private static final String URL_HTTP = "https://bitbucket-mirror.englishtown.com/scm/test/test.git";
     private static final String URL_SSH = "ssh://git@bitbucket-mirror.englishtown.com/scm/test/test.git";
 
-    private static final MirrorSettings SETTINGS = new MirrorSettings() {
-        {
+    private static final MirrorSettings SETTINGS = ownSettings(true, true);
+
+    private static MirrorSettings ownSettings(boolean pruneFlag, boolean forceFlag) {
+        return new MirrorSettings() {{
             mirrorRepoUrl = URL_SSH;
             password = "test-password";
             refspec = "+refs/heads/master:refs/heads/master +refs/heads/develop:refs/heads/develop";
@@ -47,8 +53,11 @@ public class MirrorBucketProcessorTest {
             atomic = true;
             notes = true;
             tags = true;
-        }
-    };
+            prune = pruneFlag;
+            force = forceFlag;
+        }};
+    }
+
     private static final MirrorRequest REQUEST = new MirrorRequest(1, SETTINGS);
     private static final List<MirrorRequest> REQUESTS = Collections.singletonList(REQUEST);
 
@@ -101,6 +110,53 @@ public class MirrorBucketProcessorTest {
         verify(builder).command(eq("push"));
         verify(builder).argument(eq("--prune"));
         verify(builder).argument(eq("--force"));
+        verify(builder).argument(eq(URL_SSH));
+        verify(builder).argument(eq("--atomic"));
+        verify(builder).argument(eq("+refs/heads/master:refs/heads/master"));
+        verify(builder).argument(eq("+refs/heads/develop:refs/heads/develop"));
+        verify(builder).argument(eq("+refs/tags/*:refs/tags/*"));
+        verify(builder).argument(eq("+refs/notes/*:refs/notes/*"));
+        verify(command).call();
+        verify(command).setTimeout(eq(Duration.ofSeconds(120L)));
+        verify(passwordEncryptor).decrypt(eq(SETTINGS.password));
+        verify(scmService).createBuilder(same(repository));
+    }
+
+
+    @Test
+    public void testPruneFlag() throws Exception{
+        when(repositoryService.getById(eq(1))).thenReturn(repository);
+
+        MirrorSettings settings = ownSettings(false, true);
+        MirrorRequest request = new MirrorRequest(1, settings);
+
+        processor.process("ignored", Collections.singletonList(request));
+
+        verify(builder).command(eq("push"));
+        verify(builder).argument(eq("--force"));
+        verify(builder).argument(eq(URL_SSH));
+        verify(builder).argument(eq("--atomic"));
+        verify(builder).argument(eq("+refs/heads/master:refs/heads/master"));
+        verify(builder).argument(eq("+refs/heads/develop:refs/heads/develop"));
+        verify(builder).argument(eq("+refs/tags/*:refs/tags/*"));
+        verify(builder).argument(eq("+refs/notes/*:refs/notes/*"));
+        verify(command).call();
+        verify(command).setTimeout(eq(Duration.ofSeconds(120L)));
+        verify(passwordEncryptor).decrypt(eq(SETTINGS.password));
+        verify(scmService).createBuilder(same(repository));
+    }
+
+    @Test
+    public void testForceFlag() throws Exception{
+        when(repositoryService.getById(eq(1))).thenReturn(repository);
+
+        MirrorSettings settings = ownSettings(true, false);
+        MirrorRequest request = new MirrorRequest(1, settings);
+
+        processor.process("ignored", Collections.singletonList(request));
+
+        verify(builder).command(eq("push"));
+        verify(builder).argument(eq("--prune"));
         verify(builder).argument(eq(URL_SSH));
         verify(builder).argument(eq("--atomic"));
         verify(builder).argument(eq("+refs/heads/master:refs/heads/master"));

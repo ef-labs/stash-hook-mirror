@@ -98,6 +98,16 @@
                     'id' : 'atomic' + $index,
                     'labelText': getText('mirror-repository-hook.atomic.label'),
                     'isChecked' : $config['atomic' + $index] != false
+                ],
+                [
+                    'id' : 'prune' + $index,
+                    'labelText': getText('mirror-repository-hook.prune.label'),
+                    'isChecked' : $config['prune' + $index] != false
+                ],
+                [
+                    'id' : 'force' + $index,
+                    'labelText': getText('mirror-repository-hook.force.label'),
+                    'isChecked' : $config['force' + $index] != false
                 ]
             ] /}
         {/call}

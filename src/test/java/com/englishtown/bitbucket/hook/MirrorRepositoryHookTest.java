@@ -5,7 +5,11 @@ import com.atlassian.bitbucket.concurrent.ConcurrencyService;
 import com.atlassian.bitbucket.hook.repository.*;
 import com.atlassian.bitbucket.project.Project;
 import com.atlassian.bitbucket.repository.Repository;
+import com.atlassian.bitbucket.scm.CommandErrorHandler;
+import com.atlassian.bitbucket.scm.CommandExitHandler;
+import com.atlassian.bitbucket.scm.CommandOutputHandler;
 import com.atlassian.bitbucket.scm.git.GitScm;
+import com.atlassian.bitbucket.scm.git.command.GitScmCommandBuilder;
 import com.atlassian.bitbucket.scope.Scope;
 import com.atlassian.bitbucket.scope.Scopes;
 import com.atlassian.bitbucket.server.ApplicationPropertiesService;
@@ -29,6 +33,7 @@ import static com.atlassian.bitbucket.mockito.MockitoUtils.returnArg;
 import static com.englishtown.bitbucket.hook.MirrorRepositoryHook.PROP_ATTEMPTS;
 import static com.englishtown.bitbucket.hook.MirrorRepositoryHook.PROP_THREADS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.mockito.Mockito.*;
 
 /**
@@ -63,7 +68,7 @@ public class MirrorRepositoryHookTest {
 
     @Before
     public void setup() {
-        doReturn(bucketedExecutor).when(concurrencyService).getBucketedExecutor(anyString(), any());
+       doReturn(bucketedExecutor).when(concurrencyService).getBucketedExecutor(anyString(), any());
 
         when(propertiesService.getPluginProperty(eq(PROP_ATTEMPTS), anyInt())).thenAnswer(returnArg(1));
         when(propertiesService.getPluginProperty(eq(PROP_THREADS), anyInt())).thenAnswer(returnArg(1));
@@ -237,6 +242,7 @@ public class MirrorRepositoryHookTest {
         verifyZeroInteractions(bucketedExecutor, errors, settings);
     }
 
+
     private PostRepositoryHookContext buildContext() {
         Settings settings = defaultSettings();
 
@@ -266,7 +272,8 @@ public class MirrorRepositoryHookTest {
         when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_TAGS), eq(true))).thenReturn(true);
         when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_NOTES), eq(true))).thenReturn(true);
         when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_ATOMIC), eq(true))).thenReturn(true);
-
+        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_PRUNE), eq(true))).thenReturn(true);
+        when(settings.getBoolean(eq(MirrorRepositoryHook.SETTING_FORCE), eq(true))).thenReturn(true);
         return settings;
     }
 }
