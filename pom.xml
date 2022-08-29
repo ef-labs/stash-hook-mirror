@@ -29,9 +29,9 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <bitbucket.version>7.3.0</bitbucket.version>
+        <bitbucket.version>8.2.1</bitbucket.version>
         <bitbucket.test.version>${bitbucket.version}</bitbucket.test.version>
-        <amps.version>8.1.1</amps.version>
+        <amps.version>8.4.1</amps.version>
     </properties>
 
     <dependencyManagement>
