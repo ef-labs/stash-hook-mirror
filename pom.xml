@@ -31,7 +31,7 @@
 
         <bitbucket.version>8.2.1</bitbucket.version>
         <bitbucket.test.version>${bitbucket.version}</bitbucket.test.version>
-        <amps.version>8.4.1</amps.version>
+        <amps.version>8.6.0</amps.version>
     </properties>
 
     <dependencyManagement>
