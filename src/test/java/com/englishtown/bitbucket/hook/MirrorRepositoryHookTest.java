@@ -30,6 +30,7 @@ import static com.englishtown.bitbucket.hook.MirrorRepositoryHook.PROP_ATTEMPTS;
 import static com.englishtown.bitbucket.hook.MirrorRepositoryHook.PROP_THREADS;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Unit tests for {@link MirrorRepositoryHook}.
@@ -97,7 +98,7 @@ public class MirrorRepositoryHookTest {
 
         hook.postUpdate(buildContext(), new RepositoryPushHookRequest.Builder(repo).build());
 
-        verifyZeroInteractions(bucketedExecutor);
+        verifyNoInteractions(bucketedExecutor);
     }
 
     @Test
@@ -113,7 +114,7 @@ public class MirrorRepositoryHookTest {
 
         hook.postUpdate(context, new RepositoryPushHookRequest.Builder(repo).build());
 
-        verifyZeroInteractions(bucketedExecutor);
+        verifyNoInteractions(bucketedExecutor);
     }
 
     @Test
@@ -223,7 +224,7 @@ public class MirrorRepositoryHookTest {
 
         hook.validate(settings, errors, Scopes.global());
 
-        verifyZeroInteractions(bucketedExecutor, errors, settings);
+        verifyNoInteractions(bucketedExecutor, errors, settings);
     }
 
     @Test
@@ -234,7 +235,7 @@ public class MirrorRepositoryHookTest {
 
         hook.validate(settings, errors, Scopes.project(project));
 
-        verifyZeroInteractions(bucketedExecutor, errors, settings);
+        verifyNoInteractions(bucketedExecutor, errors, settings);
     }
 
     private PostRepositoryHookContext buildContext() {

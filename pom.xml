@@ -4,7 +4,7 @@
 
     <groupId>com.englishtown</groupId>
     <artifactId>stash-hook-mirror</artifactId>
-    <version>3.3.0-SNAPSHOT</version>
+    <version>3.4.0-SNAPSHOT</version>
 
     <organization>
         <name>EF Learning Labs</name>
@@ -26,12 +26,12 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
 
-        <bitbucket.version>7.3.0</bitbucket.version>
+        <bitbucket.version>8.9.0</bitbucket.version>
         <bitbucket.test.version>${bitbucket.version}</bitbucket.test.version>
-        <amps.version>8.1.1</amps.version>
+        <amps.version>8.10.1</amps.version>
     </properties>
 
     <dependencyManagement>
